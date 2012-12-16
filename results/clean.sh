@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Go to results directory
-cd /home/andrew/Software/cartRing/results
+cd results
 
 # Remove the data files
 cd ./datFiles/; rm *.dat; cd -
@@ -17,3 +17,6 @@ cd ./vtkFiles/; rm *.vtk; cd -
 
 # Remove plot.sh
 rm plot.sh
+
+# Go back to main directory
+cd ..
