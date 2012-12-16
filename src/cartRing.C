@@ -157,7 +157,7 @@ CartRing::~CartRing () {
             std::string sThetaFil = "./gnuplot/plotSTheta.plt";
             fprintf( pFileP, "gnuplot %s\n", sThetaFil.c_str() );
         }
-        fprintf( pFileP, "\ngwenview ./pngFiles/* &\n" );
+        fprintf( pFileP, "\neog ./pngFiles/* &\n" );
         fclose( pFileP );
         chmod( plotFil.c_str(), 0775 );
     }
@@ -752,7 +752,7 @@ void CartRing::NewmarkReso () {
     _dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
     _dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
     if ((_dWcoh[4] == 0.0) && (_dWcoh[3] < 0)) {
-	_dWcoh[4] = _T;					//set time deriv of ema goes negative
+	_dWcoh[4] = _T;					//set time deriv if ema goes negative
     } else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
 	_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
     } else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
@@ -765,7 +765,7 @@ void CartRing::NewmarkReso () {
 	_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
 	_Wcoh100[1] = _T;
         if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
-	    _Wcoh100[3] = _T;				//set time deriv of ema goes negative
+	    _Wcoh100[3] = _T;				//set time deriv if ema goes negative
     	} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
 	    _Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
  	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
