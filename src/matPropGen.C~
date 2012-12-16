@@ -89,7 +89,7 @@ MatPropGen::MatPropGen ( const std::string distrib, const double parameter1,
 
 }
 
-void MatPropGen::solve ( std::vector<double>& cohPar, std::vector<unsigned>& cohNums) {
+void MatPropGen::assign ( std::vector<double>& cohPar, std::vector<unsigned>& cohNums) {
 
     cohPar.resize(_nx);
 

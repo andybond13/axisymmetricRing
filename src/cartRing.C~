@@ -18,8 +18,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <sys/stat.h>
-#include "str_ops.hpp"
+//#include <str_ops.hpp>
 #include <time.h>
+using namespace std;
 
 #define PI 3.14159265358979323846
 
@@ -52,14 +53,30 @@ CartRing::CartRing ( const double length, const double crossSec,
 
      // name for the log file
      std::string minutes = ( tinf->tm_min < 10 )
-                         ? "0"+StrOps<int>::convert(tinf->tm_min)
-                         : StrOps<int>::convert(tinf->tm_min);
-    _logPath = _path + "/cartRing" + StrOps<unsigned>::convert( _Nx ) + "_"
-             + StrOps<int>::convert( tinf->tm_mon+1 ) + "-"
-             + StrOps<int>::convert( tinf->tm_mday+0 ) + "-"
-             + StrOps<int>::convert( tinf->tm_year+1900 ) + "_"
-             + StrOps<int>::convert( tinf->tm_hour ) + ":"
+                         ? "0"+convertInt(tinf->tm_min)
+                         : convertInt(tinf->tm_min);
+    _logPath = _path + "/cartRing" + convertInt( _Nx ) + "_"
+             + convertInt( tinf->tm_mon+1 ) + "-"
+             + convertInt( tinf->tm_mday+0 ) + "-"
+             + convertInt( tinf->tm_year+1900 ) + "_"
+             + convertInt( tinf->tm_hour ) + ":"
              + minutes + ".log";
+/*
+    time_t t = time(0);   // get time now
+    struct tm * now = localtime( & t );
+    cout << (now->tm_year + 1900) << '-' 
+         << (now->tm_mon + 1) << '-'
+         <<  now->tm_mday
+         << endl;
+
+	_logPath = _path +  "/cartRing" + convertInt( _Nx ) + "_"
+             + ( tinf->tm_mon+1 ) + "-"
+             + ( tinf->tm_mday+0 ) + "-"
+             + ( tinf->tm_year+1900 ) + "_"
+             + ( tinf->tm_hour ) + ":"
+             + minutes 
+			 + ".log";
+*/
     FILE * pFile;
     pFile = fopen ( _logPath.c_str(), "w" );	//Try to create logfile
     if ( !pFile ) {				//Create structure if it doesn't exist
@@ -78,7 +95,7 @@ CartRing::CartRing ( const double length, const double crossSec,
     } else {
         // clean the directory tree
         std::string shellCmd = _path+"/clean.sh";
-        system( shellCmd.c_str() );
+        int status = system( shellCmd.c_str() );
     }
     //Print logfile title block
     fprintf ( pFile, "## Log file for cartring.h\n" );
@@ -561,6 +578,22 @@ void CartRing::defectLimit (const double& defectRange) {
 }
 
 /*------------------------------ P R I V A T E -------------------------------*/
+
+std::string CartRing::convertInt(int number) const
+{
+    if (number == 0)
+        return "0";
+    string temp="";
+    string returnvalue="";
+    while (number>0)
+    {
+        temp+=number%10+48;
+        number/=10;
+    }
+    for (int i=0;i<temp.length();i++)
+        returnvalue+=temp[temp.length()-i-1];
+    return returnvalue;
+}
 
 void CartRing::buildDiscretization () {
 
@@ -1643,7 +1676,7 @@ void CartRing::plotAtNodes ( const std::vector<unsigned>& NodalIds ) {
     _NodeFiles.resize( NodalIds.size() );
     for ( unsigned i = 0; i < _NodesToPlot.size(); i++ ) {
         _NodesToPlot[i] = NodalIds[i];
-        std::string nodalId = StrOps<unsigned>::convert( NodalIds[i] );
+        std::string nodalId = convertInt( NodalIds[i] );
         _NodeFiles[i] = _path+"/datFiles/node_" + nodalId + ".dat";	//../results
         // Prepare Gnuplot data file
         FILE * pFile;
@@ -1693,7 +1726,7 @@ void CartRing::plotAtElms ( const std::vector<unsigned>& ElmIds ) {
     _ElmFiles.resize( ElmIds.size() );
     for ( unsigned i = 0; i < _ElmsToPlot.size(); i++ ) {
         _ElmsToPlot[i] = ElmIds[i];
-        std::string elmId = StrOps<unsigned>::convert( ElmIds[i] );
+        std::string elmId = convertInt( ElmIds[i] );
         _ElmFiles[i] = _path+"/datFiles/elem_" + elmId + ".dat";	//../results
         // Prepare Gnuplot data file
         FILE * pFile;
@@ -1986,7 +2019,7 @@ void CartRing::printVtk ( const unsigned timStepNum ) const {
     for ( unsigned i = 0; i < zeroNum; i++ ) {
         baseName += "0";
     }
-    baseName += StrOps<unsigned>::convert(timStepNum);
+    baseName += convertInt(timStepNum);
     std::string vtkFile = resuPath + baseName + ".vtk";
 
     // Print in the vtk file

@@ -142,11 +142,11 @@ public:
 	  \param fragInvCDF fragmentation CDF
     */
     void grabInfo ( double& runTime, unsigned& numFrag, unsigned& nIter, double& Wcoh0, double& Wsum,
-			double& Wmax, std::vector<double>& fragLength, double& meanFragLength,
+			double& Wmax, std::vector<double>& fragLength, double& meanFragLength, double& WsprD,
 			std::vector<unsigned>& fHisto, std::vector<std::vector<double> >& fragInvCDF);
 
     void grabInfo ( double& runTime, unsigned& numFrag, unsigned& nIter, double& Wcoh0, double& Wsum,
-			double& Wmax, double& meanFragLength );
+			double& Wmax, double& meanFragLength, double& WsprD);
 
 
 
@@ -155,6 +155,8 @@ private:
     //!
     //!  M E T H O D S    F O R    R E S O L U T I O N
     //!
+
+	void std::string convertInt ( int in) const;
 
     //! Method to build the mesh
     void buildDiscretization ();

@@ -156,6 +156,8 @@ private:
     //!  M E T H O D S    F O R    R E S O L U T I O N
     //!
 
+	std::string convertInt ( int in) const;
+
     //! Method to build the mesh
     void buildDiscretization ();
 
