@@ -1,0 +1,290 @@
+\documentclass[12pt,a4paper]{article}
+%twocolumn
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{flafter}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+
+% \usepackage{memhfixc}
+% \usepackage{booktabs}
+\usepackage{array}
+% \usepackage{paralist}
+\usepackage{verbatim}
+\usepackage{subfigure}
+
+%% FOR PSTRICKS %%
+% \usepackage{auto-pst-pdf}
+% \usepackage{pstricks-add}
+% \listfiles
+
+% HEADERS & FOOTERS
+% \usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+% \pagestyle{fancy} % options: empty , plain , fancy
+% \renewcommand{\headrulewidth}{0pt} % customise the layout...
+% \lhead{}\chead{}\rhead{\thepage}
+% \fancyhead[LE,RO]{\thepage}
+% \fancyhead[CE]{}
+% \fancyhead[CO]{}
+% \lfoot{}\cfoot{}\rfoot{}
+%\twocolumn
+
+%\usepackage[left=1in,top=1in,right=1in,bottom=1in,nohead]{geometry}
+\title{Description of Finite-Element Method to Analyze Dynamic Fracture of Brittle Expanding Ring}
+\author{Andrew J. Stershic}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+This finite-element method was formulated to describe the behavior of a thin two-dimensional ring under specific loading conditions, as originally described in Mott \cite{Mott1947} and more recently in Zhou, Molinari, Ramesh \cite{ZhouCMS2006}. This ring is meant to be a simple extension of the analysis of a one-dimensional bar with impact loading, as the stresses generated in the ring are in the circumferential direction only, approximating the axial-only stress and strain of the one-dimensional case.
+
+\subsection{Purpose}
+
+The purpose of this paper is to introduce and define a finite-element method which describes the elastic and fragmentation behaviors of a brittle engineering material with a thin toroidal geometry (ring). The intent is to improve upon the work of Molinari and others primarily by employing a cohesive-surface-based method that requires only a small number of strong assumptions and by the usage of more computationally-economical methods.
+
+\subsection{Background}
+
+Mott's original publication \cite{Mott1947} primarily concerned the weight distribution of fragments from explosive shell and bomb casings. The presented an equation developed in order to estimate the fragment length distribution in terms of a characteristic length, $x_{0}$. This length was calculated using the flow stress ($P_{F}$), material density ($\rho$), ring radius ($r$), outward velocity ($v$), and a unitless parameter ($\gamma$) once taken as $100$.
+\begin{equation}
+x_{0} = \sqrt{\frac{2 P_{F}}{\rho \cdot \gamma}} \cdot \frac{r}{v}
+\label{eq:Mott}
+\end{equation}
+
+Most of the fragments were estimated to have lengths within the range of $x_{0}$ and $2x_{0}$, with the average fragment length being about $1.5x_{0}$. This theory established the aforementioned distribution approximation, the proportionality of $x_{0}$ to $r$, and the inverse proportionality of $x_{0}$ to $v$. Later theories combine these observations and instead compare $x_{0}$ to strain rate, $\dot{\varepsilon} = v/r$.
+
+The most well-known of the subsequent fragment size theories were proposed by Grady \cite{Grady1982} and Glenn and Chudnovsky \cite{GlennChudnovsky1986}, both using energy-based methods to derive formulas that predict average fragment size $s$. The formula presented in Grady is based on fracture energy per unit area ($G_{c}$), material density ($\rho$), and strain rate ($\dot{\varepsilon}$); its derivation assumes that the local kinetic energy provides the energy that is absorbed to create the fracture.
+
+\begin{equation}
+s_{Grady} = \sqrt[3]{\frac{24G_{c}}{\rho \cdot \dot{\varepsilon}^2}}
+\label{eq:Grady}
+\end{equation}
+
+Glenn and Chudnovsky modified the Grady calculation \eqref{eq:Grady} to include material strength ($\sigma_{c}$) and the elastic modulus ($E$). This change was designed to make the stored elastic strain energy available for fracture creation.
+
+\begin{equation}
+s_{GC} = 4 \sqrt\frac{\alpha}{3} \cdot \sinh\Big(\frac{\phi}{3}\Big)
+\label{eq:GlennChudnovsky}
+\end{equation}
+where $\phi = \sinh^{-1}\Big(\beta \cdot (\frac{3}{\alpha})^{1.5}\Big) \mbox{ ,  } \alpha = \frac{3\sigma_{c}^2}{\rho \cdot E \cdot \varepsilon^2} \mbox{ , and  } \beta = \frac{3G_{c}}{2\rho \cdot \varepsilon^2}$\\
+
+Zhou, et al. proposed an additional model, which attempts to better fit the experimental data to a theoretical foundation \cite{ZhouAPL2006}. The proposed model utilized a method based on method of characteristics solutions to a set of partial differential equations in order to generate data.
+
+\begin{equation}
+s_{Molinari} = \frac{4.5 s_{0}}{ 1 + 4.5 \Big( \frac{\dot{\varepsilon}}{\dot{\varepsilon}_{0}}\Big)^{2/3}}
+\label{eq:Molinari}
+\end{equation}
+where $c = \sqrt{\frac{E}{\rho}} \mbox{ ,  } s_{0} = \frac{E \cdot G_{c}}{\sigma_{c}^{2}} \mbox{ , and  } \dot{\varepsilon}_{0} = \frac{c \cdot \sigma_{c}^{3}}{E^{2} \cdot G_{c}}$\\
+
+All three of these models tend to converge for high strain-rate situations -- especially when the strain rate is about $10^{6}$ s$^{-1}$ or greater.
+
+\subsection{Application}
+
+Once the finite element method herein described is verified by analysis of the theoretical basis and its goodness of fit to experimental data, the eventual goal is to extend this method into the second and third-dimension. This would allow the description of fragment size and shape distributions on regular and irregular shells and surfaces.
+
+The benefit of the ring formulation relative to the one-dimensional bar is that it is easier to set up physical experiments to check the validity of the computational experiments.
+
+\section{Method}
+
+\subsection{Derivation}
+
+\subsection{Organization}
+
+The basic structure of the finite-element discretization of the ring is a network of elastic springs.  The number of elements ($n$) is given as an input. Each element is given a length of $l = L/n$, where $L$ is the length or circumference of the ring. Elements are evenly distributed along the circle of circumference $L$, numbered in the counter-clockwise direction. Each element consists of two nodes which contain the mass and kinematic properties (position, displacement, velocity, acceleration) of the element, one at each end; thus, there are $2n$ nodes. Each node is assigned to represent half of the mass of each element as a point mass ($m_{node} = M / (2n)$). The elements act with linear elastic properties and thus can be viewed as one-dimensional springs, with a stiffness (k) defined as a function of the Young's modulus / elastic modulus ($E$), cross-sectional area ($A$), and ring size by Hooke's Law.
+\begin{equation}
+F_{spr} = k \cdot (l-l_{o}) = A \cdot \sigma = E \cdot A \cdot \varepsilon = \frac{E \cdot A}{l_{o}} \cdot (l-l_{o})
+\label{eq:sprForce}
+\end{equation}
+\begin{equation}
+k = \frac{E \cdot A}{l_{o}}
+\label{eq:sprStiff}
+\end{equation}
+
+The connection between elements is modeled by a cohesive link. The behavior of this link is described by a cohesive law that provides a relationship between cohesive stress ($\sigma_{coh}$) and the separation distance of the initially collocated elements ($\delta$) \eqref{eq:cohLaw}. This model used a linear cohesive law, defined by maximum strength at zero separation ($\sigma_{coh} = \sigma_{c} \mbox{ \& } \delta = 0$) and zero strength at maximum separation ($\sigma_{coh} = 0 \mbox{ \& } \delta = \delta_{c}$). Elastic behavior is characterized as motion along the line $\delta$ = 0, as the two nodes are fixed to one another until the cohesive-link stress ($\sigma_{coh}$) exceeds the strength ($\sigma_{c}$), after which the nodes are allowed to move independently.
+
+In the model, fracture is determined based on the length of the cohesive links; the elements themselves are considered unbreakable. Up until the maximum specified cohesive zone separation is achieved ($\delta = \delta_{c}$), the cohesive stress ($\sigma_{coh}$) is a negative-sloped function of the separation distance ($\delta$) for loading behavior ($\delta = \delta_{max}$) \eqref{eq:cohLaw}.  For link unloading, cohesive stress follows the positive-sloped line between the origin and the stress and separation of the maximum experienced separation distance $(\delta_{max}, \sigma_{coh}(\delta_{max}))$. Alternatively, when the separation distance ($\delta$) is negative and full fragmentation has not yet occurred at this node (is this actually a condition???), the compressive cohesive stress ($\sigma_{coh}$) is specified as a linear function beginning at the origin and having a slope of the elastic modulus ($E$) scaled by the element length ($l$) multiplied by some penalty factor ($\epsilon$):
+\begin{equation}
+\sigma_{coh} = \begin{cases} \sigma_{coh,penalty}, & \mbox{if } \delta < 0 \\ -\infty < \sigma_{coh} \leq \sigma_{c}, & \mbox{if } \delta = 0 \\ \sigma_{c} \cdot  (1-\frac{\delta}{\delta_{c}}), & \mbox{if } 0 < \delta < \delta_{c} \mbox{ and } \delta = \delta_{max} \\ \frac{\delta}{\delta_{max}} \cdot \sigma_{c} \cdot (1-\frac{\delta_{max}}{\delta_{c}}), & \mbox{if } 0 < \delta < \delta_{c} \mbox{ and } \delta < \delta_{max}  \\ 0, & \mbox{if } \delta \geq \delta_{c} \end{cases}
+\label{eq:cohLaw}
+\end{equation}
+where
+$\delta_{max}(t) = max(\delta(s)), \quad \forall \quad s \leq t$
+
+\begin{equation}
+\sigma_{coh, penalty} = \frac{\delta \cdot E }{l} \cdot \epsilon
+\label{eq:penStress}
+\end{equation}
+
+The cohesive-link opening information is determined and forcing applied considering small perturbation assumptions. Therefore, after damage has been taken and the cohesive-link opening $\delta$ is non-zero ($\delta$) is calculated considering the $\vec{e_{\theta}}$ direction only \eqref{eq:delta_e_Theta} -- that is to say that if a set of co-ordinate vectors is established for each cohesive link such that $\vec{e_{r}}$ is the unit vector pointing from the center of the ring to the center of a particular cohesive link and $\vec{e_{\theta}}$ is the unit vector pointing from the center of that cohesive link perpendicular to $\vec{e_{r}}$ counter-clockwise. Correspondingly, the force that the cohesive link exerts on the connected pair of nodes is similarly applied in the $\vec{e_{\theta}}$ direction only \eqref{eq:CohForc_e_Theta}.
+
+\begin{equation}
+\delta = \|\vec{\delta}\| = \vec{\delta} \cdot \vec{e_{\theta}}
+\label{eq:delta_e_Theta}
+\end{equation}
+
+\begin{equation}
+F_{coh} = \|\vec{F_{coh}}\| = \vec{F_{coh}} \cdot \vec{e_{\theta}}
+\label{eq:CohForc_e_Theta}
+\end{equation}
+
+\begin{equation}
+\sigma_{coh} = F_{coh} \cdot A
+\label{eq:CohForcStress}
+\end{equation}\\
+
+when $\delta = 0$:
+\begin{equation}
+\sigma_{coh} = \frac{\sigma_{a} + \sigma_{b}}{2} = \Big\|\frac{\vec{F_{spr,a}}-\vec{F_{spr,b}}}{2A}\Big\|
+\label{eq:CohElasStress}
+\end{equation}
+where $a$ and $b$ are the two elements that the link connects.\\
+
+
+
+Force equilibrium and Newton's Laws are applied at the nodal level; therefore, the two nodes of each element move independently of one another. Forces considered are internal and external. Internal forces include the elastic (spring) force of the element ($F_{spr}$) a function of the strain of the element -- the element's two nodes' current distance versus the original element length ($\varepsilon = \frac{l-l_{o}}{l_{o}}$) \eqref{eq:sprForce}, and the cohesive force due to the cohesive link ($F_{coh} = \sigma_{coh} \cdot A$). Unlike the cohesive-link forces, the elastic elemental forces are not constrained to the $\vec{e_{\theta}}$ direction. External forces are applied in a number of configurations at the element level.
+
+Though not used directly, the following energies are also calculated in this process: kinetic energy of the elements ($W_{kin}$) -- calculated based on mass and velocity at the nodal level \eqref{eq:Wkin}; elastic potential (spring) energy of the element ($W_{spr}$) -- calculated based on strain at the elemental level \eqref{eq:Wspr}; elastic potential energy of the cohesive link ($W_{coh, e}$) -- calculated based on stress and strain at the link level \eqref{eq:WcohE}; dissipated (fracture) energy of the cohesive link ($W_{coh, d}$) -- calculated based on stress and strain at the link level \eqref{eq:WcohD}; and external work ($W_{ext}$) -- calculated by external forcing and displacement at the nodal level \eqref{eq:Wext}.
+
+\begin{equation}
+W_{kin} = \sum_{i=1}^{2n} \frac{1}{2} m_{i} v_{i}^{2},  \mbox{ where $i$ is a node}
+\label{eq:Wkin}
+\end{equation}
+\begin{equation}
+W_{spr} = \sum_{i=1}^{n} \frac{1}{2} \sigma_{i} \cdot \varepsilon_{i} \cdot A \cdot l_{o, i},  \mbox{ where $i$ is an element}
+\label{eq:Wspr}
+\end{equation}
+\begin{equation}
+W_{coh, e} = \sum_{i=1}^{n} \frac{1}{2} A \cdot \sigma_{c, i} \cdot \delta_{i},  \mbox{ where $i$ is a cohesive link}
+\label{eq:WcohE}
+\end{equation}
+\begin{equation}
+W_{coh, d} = \sum_{i=1}^{n} \frac{1}{2} A \cdot \sigma_{coh, i} \cdot \delta_{i},  \mbox{ where $i$ is a cohesive link}
+\label{eq:WcohD}
+\end{equation}
+\begin{equation}
+W_{ext} = \sum_{i=1}^{2n} \frac{1}{2} F_{ext, i} \cdot v_{i} \cdot \Delta t,  \mbox{ where $i$ is a node}
+\label{eq:Wext}
+\end{equation}\\
+
+\subsection{Execution}
+
+The method execution follows an adaptation of the Newmark-$\beta$ method for explicit non-linear finite element methods as described in Belytschko \cite{Belytschko2000}. All accelerations, velocities, displacements, and forces are defined in the x-y coordinate system. Execution is as follows:
+\begin{itemize}
+\item Time-step is defined.
+
+\item Newmark Prediction – the nodal velocities and displacements are predicted based on previous acceleration and velocity values.
+
+\item Newmark Resolution – spring force, cohesive force, and external forces are computed for each node; acceleration is computed by the sum of the forces in each direction divided by the nodal mass.
+
+\item Newmark Correction – the nodal velocities are corrected based on the newly determined accelerations.
+
+\item Critical cohesion zones are checked to see if time-step refinement is necessary.
+
+\item Energies are totaled and compared to give a numerical estimate of stability.
+
+\item Kinematic values and forces are updated.
+
+\item Information of interest is saved and plotted.
+\end{itemize}
+The time-step ($\hat{\Delta t}$) is based on the critical time-step value ($\Delta t_{c}$) determined by the element length ($l$) and elastic wave speed ($c$) of the material \eqref{eq:deltaT}. This wave speed is defined as $c = \sqrt{\frac{E}{\rho}}$, where $E$ is the elastic modulus and $\rho$ is the material density. It is believed that elastic loading and unloading waves travel at this speed; thus, the critical time-step is defined as the amount of time needed for the elastic wave to traverse a single element ($\Delta t_{c} = l / c$). This method takes the maximum time-step for use as four fifths of the critical time-step ($\Delta t = 0.8 \cdot \Delta t_{c}$). Additionally, if time-step refinement is required to maintain solution stability, the time-step is further reduced by multiplying by a refinement factor, typically $\xi \in [0.1,0.4]$. This method includes two levels of time-step refinement, bringing the effective multiplier to be $\hat{\xi} \in [0.01,0.16]$ when employing both levels of refinement.
+
+\begin{equation}
+\hat{\Delta t} = \Delta t \cdot \hat{\xi} = 0.8\Delta t_{c} \cdot \hat{\xi} = 0.8 \frac{l}{c} \cdot \hat{\xi}
+\label{eq:deltaT}
+\end{equation}
+where
+\begin{equation}
+\hat{\xi} = \begin{cases} 1, & \mbox{if no levels of time-step refinement} \\ \xi, & \mbox{if one level of time-step refinement } \\ \xi^{2}, & \mbox{if  two levels of time-step refinement }\end{cases}
+\label{eq:xiHat}
+\end{equation}\\
+
+Two different critical-zone indicators based on the cohesive-link stresses were implemented in order to predict upcoming numerical instability in the solution. The first critical zone describes a region on the cohesive law plot ($\sigma_{coh} \mbox{ vs. } \delta$ per cohesive link), on the stress axis at and above 95\% of the maximum cohesive stress ($\sigma_{c}$) and on the downward-sloping linear part of the law when cohesive stress is greater than the scaled elastic modulus times the separation distance ($\sigma = \frac{E}{l}\cdot \delta$). This region describes cohesive links that either are beginning to open or have recently opened. This method enables a level of time-step refinement when any cohesive link is in this zone. The second critical zone describes the compression region of the cohesive law plot. When any cohesive link has a negative (compressive) cohesive stress, ($\sigma_{coh} < 0$), a level of time-step refinement is activated. Thus, since the model could have cohesive links in no zone, one zone, or both zones, time-step refinement can be activated on zero, one, or two levels, respectively. Since there is only one Newmark-$\beta$ for the whole method, there is only one universal time-step for the whole model; time-step refinement applies to all elements, links, and nodes, no matter if any particular cohesive link or element's associated cohesive links were in the critical zones or not.
+
+The second method of ascertaining numerical instabilities during the execution of the code is to aggregate and compare the calculated energy values. Belytschko \cite{Belytschko2000} indicates that a type of numerical instability, ``arrested instability,'' may arise due to non-linearities within the solution process and results in cause spurious over-estimations of displacements. Since this particular type of instability later causes the method to regain stability, the implementation of energy-balance-check methods is required to examine real-time solution stability. The magnitude of the sum of the energies is computed -- taking the external work as negative -- and compared to the maximum single energy component multiplied by a small tolerance ($\psi$) recommended to be on the order of $10^{-2}$ :
+
+\begin{equation}
+|W_{kin}+W_{int}-W_{ext}| \leq \psi \cdot max(W_{kin}, W_{int}, W_{ext})
+\label{eq:energyBalance}
+\end{equation}
+
+where
+\begin{equation}
+W_{int} = W_{spr} + W_{coh, e} + W_{coh, d}
+\label{eq:Wint}
+\end{equation}\\
+
+This method generally prescribed the value of $\psi$ to be 0.01 for notification purposes and 0.05 to serve as a cutoff for terminating the program. The assumption that serves as the basis for this energy balance check is the conservation of energy within the system. Since this method utilizes only conservative forces, the energy sum should be constant with only slight variations due to computing error. Any energy generation beyond reasonable limits indicates that the method has lost numerical stability and will likely provide an inaccurate solution.
+
+\subsection{Computational Economy}
+
+One method studied to effect an increase in computational economy was the usage of fracture-limiting zoning. With this setting, once a cohesive link begins to open into a crack ($\sigma_{coh} \geq \sigma_{c}$ \& $\delta > 0$), all cohesive links within a specified range of this link are prohibited from opening, forcing the maintenance of elastic behavior for those nearby links. The $\delta$ values for these links is held at zero and the cohesive force is defined as the average of the forces exerted by the neighboring pair of elements \eqref{eq:CohElasStress}. With regard to the cohesive law, this setting overrides the $\sigma_{c}$ as $\infty$ for the maximum stress in the second case of the cohesive law \eqref{eq:cohLaw} for the cohesive links within the range of the opening link, as this provides for a permanently connected interface.
+
+In this case, in order to replace the energy dissipation capability of the cohesive links, the spring elements that have both cohesive links prohibited from opening act differently than normal, following a bulk-damage model \eqref{eq:bulkDamage}. The non-hardening bulk-damage model has been created in order to characterize the behavior of the elements during this situation\eqref{eq:zoneSprStress}. The maximum stress possible is the average of the maximum stresses of the surrounding cohesive links ($\sigma_{y} = \frac{\sigma_{c,1}+\sigma_{c,2}}{2}$).
+
+\begin{equation}
+\sigma_{elem} = \begin{cases} E \cdot \varepsilon, & \mbox{if } \varepsilon \leq 0 \\ E \cdot \varepsilon, & \mbox{if } \varepsilon > 0 \mbox{ and } D = 0 \\ \tilde{E} \cdot \varepsilon, & \mbox{if } 0 < \varepsilon < \varepsilon_{d} \mbox{ and } D \neq 0\\ \sigma_{y}, & \mbox{if } \varepsilon \geq \varepsilon_{d}\mbox{ and } D \neq 0 \end{cases}
+\label{eq:zoneSprStress}
+\end{equation}
+
+where
+
+\begin{equation}
+\varepsilon_{d}(t) = max(\varepsilon(s)), \quad \forall \quad s \leq t
+\label{eq:strainBulkDamage}
+\end{equation}
+
+$D = \mbox{bulk damage} \in [0,1]$:
+\begin{equation}
+D = 1 - \frac{\sigma_{y}}{E \cdot \varepsilon_{d}} \geq 0
+\label{eq:bulkDamage}
+\end{equation}
+
+\begin{equation}
+\tilde{E} = E \cdot (1 - D)
+\label{eq:E_tilde}
+\end{equation}
+
+Since the elements now dissipate energy in the bulk-damage model, there is another energy term that represents the energy dissipated \eqref{eq:WsprD}. Now, the sum of the dissipated energy \eqref{eq:Wdiss} is comparable to the dissipated cohesive energy in the normal model \eqref{eq:WcohD}, and the energy summation \eqref{eq:Wint} is modified accordingly as to include the dissipated spring energy \eqref{eq:Wint2}.
+
+\begin{equation}
+W_{spr, d} = \sum_{i=1}^{n} (\frac{A \cdot l_{o, i} \cdot \sigma_{y, i}^{2}}{2E}) \cdot (\frac{D_{i}}{1 - D_{i}}),  \mbox{ where $i$ is an element}
+\label{eq:WsprD}
+\end{equation}
+
+\begin{equation}
+W_{dissipated} = W_{spr, d} + W_{coh, d}
+\label{eq:Wdiss}
+\end{equation}
+
+\begin{equation}
+W_{int} = W_{spr} + W_{spr, d} + W_{coh, e} + W_{coh, d}
+\label{eq:Wint2}
+\end{equation}\\
+
+A second method studied to streamline computation required in the simulations was to vary the method of assigning material properties values, particularly cohesive-link strength, which emulates material strength. The simulations were run for comparison with both deterministic and probabilistic (Monte-Carlo approach) modes for material property assignments. For deterministic computations, a single value for cohesive-link strength was given for all links, and the computation was run as such. As expected, multiple runs of the method with the same input parameters gave consistent results. The second mode was to use probability distributions to simulate small-scale initial defect distributions within the material; this would provide parameter variance as found in actual material property values with the anticipation of faster fragment and cohesive energy convergence when mesh-size is varied. The secondary intentions of the inclusion of this mode are to check the deterministic results and to perhaps provide a dataset with more continuous-appearing results. The distributions utilized are the Normal/Gaussian distribution, Log-normal distribution, Gamma distribution, Weibull distribution, Uniform distribution, and a Poisson Process. Distributions with ranges only in the positive real domain were preferred, as many material properties, such as strength, cannot be negative.
+
+In the probabilistic mode, a number of computations are performed, usually around 10, and the results are presented displaying the mean and standard deviation values as error bars.
+
+
+\subsection{Other Notes}
+
+Because the material strength values vary in the probabilistic mode and since it might be desired to compare different simulations with the same link cohesive-energy values, two different cohesive law types were included in the method. One type specifies the cohesive-link strength and maximum link separation -- for use primarily in the deterministic mode; and the other specifies the cohesive-link strength and total cohesive-link energy ($G_{c} = \int_{0}^{\infty} \! \sigma_{coh}(\delta) \, d\delta = \frac{1}{2} \sigma_{c} \cdot \delta_{c}$) -- for use in both the deterministic and probabilistic modes. The cohesive-link energy utilized assuming energy per unit area units ($\frac{N-m}{m^2}$).
+
+The forcing functions within the method can be of constant or linearly increasing value and can act in the radial (outward, $\vec{e_{r}}$) or theta (rotational, $\vec{e_{\theta}}$) directions. Similarly, the velocity boundary conditions can apply an initial or a constant velocity in the radial or theta directions.
+
+\section{Results}
+
+\section{Conclusion}
+
+check against book
+
+check against code
+
+\bibliographystyle{abbrv}
+\bibliography{./metaBib.bib}
+
+
+\end{document}
+

@@ -1,0 +1,16 @@
+## Log file for cartring.h
+##   Number of elements: 800
+##   Start on: Wed Aug  4 16:40:11 2010
+
+
+##    Adaptive time-step initiated. t =  2.099995e-07
+##    Adaptive time-step released. t =  3.189992e-07
+##    Adaptive time-step initiated. t =  5.629794e-07
+
+
+## Execution finished
+##    time: Wed Aug  4 16:40:22 2010
+##    number of fragments: 126
+##    number of iterations: 1036
+##    final cohesive energy: 2.356393e-02
+##    final stability ratio: 3.175417e-05

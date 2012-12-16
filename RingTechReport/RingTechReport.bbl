@@ -1,0 +1,33 @@
+\begin{thebibliography}{1}
+
+\bibitem{Belytschko2000}
+T.~Belytschko, W.~K. Liu, and B.~Moran.
+\newblock {\em {Nonlinear Finite Elements for Continua and Structures}}.
+\newblock John Wiley \& Sons Ltd., Chichester, West Sussex, England, 2000.
+
+\bibitem{GlennChudnovsky1986}
+L.~Glenn and A.~Chudnovsky.
+\newblock Strain-energy effects on dynamic fragmentation.
+\newblock {\em Journal of Applied Physics}, 59(4):1379--1380, 1986.
+
+\bibitem{Grady1982}
+D.~Grady.
+\newblock Local inertial effects in dynamics fragmentation.
+\newblock {\em Journal of Applied Physics}, 53(1):322--325, 1982.
+
+\bibitem{Mott1947}
+N.~F. Mott.
+\newblock Fragmentation of shell cases.
+\newblock {\em Proc. R. Soc. A}, 189(1018):300--308, 1947.
+
+\bibitem{ZhouCMS2006}
+F.~Zhou, J.-F. Molinari, and K.~T. Ramesh.
+\newblock Analysis of the brittle fragmentation of an expanding ring.
+\newblock {\em Comput. Mater. Sci.}, 37(1--2):74--85, 2006.
+
+\bibitem{ZhouAPL2006}
+F.~Zhou, J.-F. Molinari, and K.~T. Ramesh.
+\newblock Characteristic fragment size distributions in dynamic fragmentation.
+\newblock {\em Appl. Phys. Lett.}, 88(26):261918(1)--261918(3), 2006.
+
+\end{thebibliography}
