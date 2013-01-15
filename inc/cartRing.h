@@ -379,6 +379,7 @@ private:
     std::string _path;
     std::string _logPath;
     double _defectRange;
+	std::clock_t _start;
 
     //! Attributes describing the mesh
     /*!

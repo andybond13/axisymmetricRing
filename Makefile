@@ -1,14 +1,14 @@
 CPP       = g++
 CPP_FLAGS = -O2 #-Wall -fPIC -O2 -m64
-SOFTWARE  = ./utils
+SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/
 #CTL       = $(SOFTWARE)/utils/ctl
 #CTLINC    = $(CTL)/include
 #CTLLIB    = $(CTL)/lib/libctl_g++Linuxx86_64/libctl.so
 INCS      = -I./inc -I$(BOOST_ROOT) #-I./ci -I$(CTLINC) -I$(SOFTWARE)/utils 
 SRC       = ./src/
-OBJ       = ./bin
-OBJMAIN   = $(OBJ)/main/
+OBJ       = ./bin/
+OBJMAIN   = $(OBJ)
 OBJSERV   = $(OBJ)/service/
 OBJCLIE   = $(OBJ)/client/
 TEST      = ./test/

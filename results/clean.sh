@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Go to results directory
-#cd results
+cd /Users/andrewstershic/Code/axisymmetricRing/results
 
 # Remove the data files
 cd ./datFiles/; rm *.dat; cd -
@@ -17,6 +17,3 @@ cd ./vtkFiles/; rm *.vtk; cd -
 
 # Remove plot.sh
 rm plot.sh
-
-# Go back to main directory
-#cd ..

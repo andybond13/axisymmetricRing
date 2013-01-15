@@ -23,9 +23,10 @@ int main () {
     double A   = 1.0e-6;   // in m^2
     double rho = 2.75e+3;  // in kg/m3
     double E   = 2.75e+11; // in Pa
-    int nx     = 5000;
+    int nx     = 50;
 //    std::string path = "/home/ajs84/Software/cartRing/results";
-    std::string path = "~/andrew/Duke/results";
+//    std::string path = "~/andrew/Duke/results";
+	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
 
     CartRing ring( L, A, rho, E, nx, path );
     //ring.applyForc( "CONS", "THETA", 6.0e-1 );
@@ -51,11 +52,11 @@ int main () {
     double param3 = 0;
 
     MatPropGen properties(distrib, param1, param2, param3, nx);
-    properties.solve(cohPar[0], cohNums);
+    properties.assign(cohPar[0], cohNums);
     cohPar[1].assign( 1, 100 );
     ring.setCohLaw( "LINSG", cohPar );
     ring.plotCohLaw( cohNums );
-    /**/
+    
 
     ring.display( 10, 10 );
 
@@ -77,13 +78,15 @@ int main () {
     double totalTime = 5.0e-06;
     unsigned printFreq = 1;
     double refine = 0.2;
-    ring.solve( totalTime, printFreq, refine );
+	ring.solve( totalTime, printFreq, refine );
     ring.printHisto();
-    /*double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax;
+    double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax; double WsprD;
     std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
     std::vector<std::vector<double> >fragInvCDF;
-    ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, fHisto, fragInvCDF);
-    std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;*/
+    ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
+
+
+    std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
 
     return 0;
 }

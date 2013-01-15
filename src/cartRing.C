@@ -47,9 +47,13 @@ CartRing::CartRing ( const double length, const double crossSec,
     _path = path;
 
      //Initialize time clock to generate time stamp for log filename
-     time_t rawtime;
-     time ( &rawtime );
-     struct tm * tinf = localtime ( &rawtime );
+	time_t rawtime;
+	time ( &rawtime );
+	struct tm * tinf = localtime ( &rawtime );
+
+	//initialize clock for run-time calculation
+	std::clock_t _start;
+	_start = std::clock();
 
      // name for the log file
      std::string minutes = ( tinf->tm_min < 10 )
@@ -543,7 +547,7 @@ void CartRing::grabInfo (double& runTime, unsigned& numFrag, unsigned& nIter, do
 				std::vector<unsigned>& fHisto, std::vector<std::vector<double> >& fragInvCDF){
     //Grabs information from a completed run and returns it to the post-processor
     //Returns all values
-    runTime = clock()/CLOCKS_PER_SEC;
+    runTime = ( std::clock() - _start ) / (double) CLOCKS_PER_SEC;
     numFrag = _numFrag;
     nIter = _Nt;
     Wcoh0 = _Wcoh[0];
@@ -561,7 +565,7 @@ void CartRing::grabInfo (double& runTime, unsigned& numFrag, unsigned& nIter, do
 				double& Wmax, double& meanFragLength, double& WsprD){
     //Grabs information from a completed run and returns it to the post-processor
     //Returns doubles only
-    runTime = clock()/CLOCKS_PER_SEC;
+    runTime = ( std::clock() - _start ) / (double) CLOCKS_PER_SEC;
     numFrag = _numFrag;
     nIter = _Nt;
     Wcoh0 = _Wcoh[0];
