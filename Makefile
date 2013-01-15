@@ -1,4 +1,4 @@
-CPP       = g++
+CPP       = mpic++
 CPP_FLAGS = -O2 #-Wall -fPIC -O2 -m64
 SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/

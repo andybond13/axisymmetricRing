@@ -15,8 +15,20 @@
 #include <iostream>
 #include <math.h>
 #include "matPropGen.h"
+#include "mpi.h"
 
 int main () {
+
+/*
+int myid, numprocs; 
+ MPI::Init(); 
+numprocs = MPI::COMM_WORLD.Get_size(); 
+myid = MPI::COMM_WORLD.Get_rank(); 
+std::cout << myid << std::endl;
+std::cout << numprocs << std::endl;
+MPI::COMM_WORLD.Barrier();
+ MPI::Finalize(); 
+*/
 
     // ring specification
     double L   = .05;   // in m

@@ -12,6 +12,7 @@
 
 *******************************************************************************/
 #include "matPropGen.h"
+#include "mpi.h"
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
