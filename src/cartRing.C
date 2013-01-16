@@ -22,6 +22,7 @@
 //#include <str_ops.hpp>
 #include <time.h>
 using namespace std;
+using namespace MPI;
 
 #define PI 3.14159265358979323846
 
@@ -36,6 +37,21 @@ using namespace std;
 CartRing::CartRing ( const double length, const double crossSec,
                      const double density, const double YoungMod,
                      const int nodNum, const std::string path  ) {
+
+/*
+	//begin parallel specification
+	int myid, numprocs; 
+	MPI::Init(); 
+	numprocs = MPI::COMM_WORLD.Get_size(); 
+	myid = MPI::COMM_WORLD.Get_rank(); 
+	std::cout << myid << std::endl;
+	std::cout << numprocs << std::endl;
+	MPI::COMM_WORLD.Barrier();
+	//domain decomposition	
+	//end parallel run
+	MPI::COMM_WORLD.Barrier();
+	MPI::Finalize(); 
+*/
 
     // affect input values to attributes
     _L = length;

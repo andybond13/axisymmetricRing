@@ -17,25 +17,16 @@
 #include "matPropGen.h"
 #include "mpi.h"
 
-int main () {
+using namespace std;
 
-/*
-int myid, numprocs; 
- MPI::Init(); 
-numprocs = MPI::COMM_WORLD.Get_size(); 
-myid = MPI::COMM_WORLD.Get_rank(); 
-std::cout << myid << std::endl;
-std::cout << numprocs << std::endl;
-MPI::COMM_WORLD.Barrier();
- MPI::Finalize(); 
-*/
+int main () {
 
     // ring specification
     double L   = .05;   // in m
     double A   = 1.0e-6;   // in m^2
     double rho = 2.75e+3;  // in kg/m3
     double E   = 2.75e+11; // in Pa
-    int nx     = 50;
+    int nx     = 20;
 //    std::string path = "/home/ajs84/Software/cartRing/results";
 //    std::string path = "~/andrew/Duke/results";
 	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
@@ -96,7 +87,6 @@ MPI::COMM_WORLD.Barrier();
     std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
     std::vector<std::vector<double> >fragInvCDF;
     ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
-
 
     std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
 
