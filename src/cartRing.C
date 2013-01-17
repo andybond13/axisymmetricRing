@@ -630,6 +630,8 @@ void CartRing::domainDecomposition() {
 	}
 	
 	//distribute who owners of nodes are
+	//synchronize
+	MPI::COMM_WORLD.Barrier();
 	MPI::COMM_WORLD.Allreduce (&owner[0] , &_owner[0] , (int)2*_Nx , MPI::INT ,MPI::SUM);
 	
 	//check that everything lines up locally	 
@@ -637,6 +639,8 @@ void CartRing::domainDecomposition() {
 		if (_local[i]) assert(_owner[i] == _myid);
 	}
 
+	//synchronize
+	MPI::COMM_WORLD.Barrier();
 }
 
 std::string CartRing::convertInt(int number) const
@@ -877,7 +881,7 @@ void CartRing::NewmarkCorr () {
 double CartRing::sprForc ( const unsigned sprNum ) {
 
 	//Update boundary spring locations to be used for ->stress->sprVecPred and -sprVecPred, if necessary
-//	exchangeBoundaryNodes(sprNum);
+	exchangeBoundaryNodes(sprNum);
 
     // Compute the stress
     _Stress[sprNum] = stress( sprNum );
@@ -1669,11 +1673,6 @@ std::vector<double> CartRing::sprVecPred ( const unsigned sprNum ) const {
     // Get the connectivity of the element sprNum
     unsigned nod_1 = _SprCon[sprNum].first;
     unsigned nod_2 = _SprCon[sprNum].second;
-	
-	if (!_local[nod_1] || !_local[nod_2]) {
-		cout << "sprVecPred:  " << "(" << sprNum << ") " << nod_1 << " - "  << _local[nod_1] << " || " << nod_2 << " - " << _local[nod_2] << endl;
-//		loadNonLocal	
-	}
 
     //Calculate expected element length vector
     std::vector<double> elmVec (2);
@@ -1699,6 +1698,41 @@ std::vector<double> CartRing::cohVecPred ( const unsigned cohNum ) const {
               - ( _NodPos[nod_1][1] + _Dis[nod_1][1][1] );
     return elmVec;
 }
+
+void CartRing::exchangeBoundaryNodes ( const unsigned sprNum ) { 
+    // Get the connectivity of the element sprNum
+    unsigned nod_1 = _SprCon[sprNum].first;
+    unsigned nod_2 = _SprCon[sprNum].second;
+	
+	if (!_local[nod_1] || !_local[nod_2]) {
+		int owner1 = _owner[nod_1];
+		int owner2 = _owner[nod_2];
+		cout << "sprVecPred:  " << "(" << sprNum << ") " << nod_1 << " - "  << owner1 << " || " << nod_2 << " - " << owner2 << endl;
+
+		//check to make sure
+		assert(owner1 != owner2);
+
+		//figure out where to send to/from
+		int destination = (int)_myid;
+		int origin = owner1 + owner2 - destination;
+
+		//figure out which node to send to/from
+		int node = nod_1;
+		if (_local[nod_1])
+			node = nod_2;	//node 1 is local, node 2 is not!
+		else if (_local[nod_2])
+			node = nod_1;	//node 2 is local, node 1 is not!
+		else 
+			assert(1==0);
+		
+
+		//mpisend
+		//COMM_WORLD.Send(&_NodPos[node][0], 2, MPI::INT, origin, destination );
+		//mpireceive
+	}
+	return;
+}
+
 
 /*******************************************************************************
 
