@@ -44,8 +44,6 @@ CartRing::CartRing ( const double length, const double crossSec,
 	MPI::Init(); 
 	_numprocs = MPI::COMM_WORLD.Get_size(); 
 	_myid = MPI::COMM_WORLD.Get_rank(); 
-	std::cout << _myid << std::endl;
-	std::cout << _numprocs << std::endl;
 	MPI::COMM_WORLD.Barrier();
 
     // affect input values to attributes
@@ -619,12 +617,12 @@ void CartRing::domainDecomposition() {
 	vector<int> owner = vector<int>(2*_Nx);
 	_begin = (_myid*_Nx)/_numprocs;
 	_end = ((_myid+1)*_Nx)/_numprocs-1;
+
 	//assign whether the node is to be owned locally or not
 	for (unsigned i = 0; i < 2*_Nx; ++i) {
 	
 		if ((i >= 2*_begin+1 && i <= 2*_end+2) || (i == 0 && _myid == _numprocs-1)) {
 			_local[i] = true;
-			cout << "node " << i << " local to processor " << _myid << endl;
 			owner[i] = _myid;
 		} else {
 			_local[i] = false;
@@ -633,14 +631,12 @@ void CartRing::domainDecomposition() {
 	
 	//distribute who owners of nodes are
 	MPI::COMM_WORLD.Allreduce (&owner[0] , &_owner[0] , (int)2*_Nx , MPI::INT ,MPI::SUM);
-	 
+	
+	//check that everything lines up locally	 
 	for (unsigned i = 0; i < 2*_Nx; ++i) { 
-		if (_local[i]) {assert(_owner[i] == _myid);
-		cout << "node " << i << " on processor " << _myid << "okay" << endl; }	
-
+		if (_local[i]) assert(_owner[i] == _myid);
 	}
 
-	cout << "Processor: " << _myid << " of " << _numprocs << ". " << _begin << " to " << _end << endl;
 }
 
 std::string CartRing::convertInt(int number) const
