@@ -367,12 +367,17 @@ private:
 		   _defectRange: crack opening limit range, +/- from opening on either side
 		
     */
+	int _myid;
+	int _numprocs;
     double _L;
     double _A;
     double _rho;
     double _E;
     double _R0;
     unsigned _Nx;
+	std::vector<bool> _local;
+	unsigned _begin;
+	unsigned _end;
     double _c;
     double _Dx;
     double _m;

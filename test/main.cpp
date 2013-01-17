@@ -15,7 +15,7 @@
 #include <iostream>
 #include <math.h>
 #include "matPropGen.h"
-#include "mpi.h"
+//#include "mpi.h"
 
 using namespace std;
 
@@ -32,7 +32,8 @@ int main () {
 	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
 
     CartRing ring( L, A, rho, E, nx, path );
-    //ring.applyForc( "CONS", "THETA", 6.0e-1 );
+
+	//ring.applyForc( "CONS", "THETA", 6.0e-1 );
     //ring.initVel( "RADIA", 2.5*1.592e+1 );
     //ring.applyForc( "LINE", "RADIA", 1.592e+1 );
     //ring.applyForc( "CONS", "RADIA", 6.0e-1 );
