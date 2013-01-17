@@ -17,6 +17,7 @@
 #include <time.h>
 #include <iostream>
 #include <stdio.h>
+#include <assert.h>
 #include <math.h>
 #include <sys/stat.h>
 //#include <str_ops.hpp>
@@ -57,17 +58,8 @@ CartRing::CartRing ( const double length, const double crossSec,
     _c = sqrt( _E / _rho );
     _path = path;
 
-	//domain decomposition	
-	_local = vector<bool>(_Nx);
-	_begin = (_myid*_Nx)/_numprocs;
-	_end = ((_myid+1)*_Nx)/_numprocs-1;
-	for (unsigned i = 0; i < _Nx; ++i) {
-		if (i >= _begin && i <= _end) {
-			_local[i] = true;
-		} else {
-			_local[i] = false;
-		}
-	}
+	//domain decomposition
+	domainDecomposition();	
 
      //Initialize time clock to generate time stamp for log filename
 	time_t rawtime;
@@ -109,7 +101,8 @@ CartRing::CartRing ( const double length, const double crossSec,
 		} else {
 		    // clean the directory tree
 		    std::string shellCmd = _path+"/clean.sh";
-		    int status = system( shellCmd.c_str() );
+		    //int status = system( shellCmd.c_str() );
+			system( shellCmd.c_str() );
 		}
 		//Print logfile title block
 		fprintf ( pFile, "## Log file for cartring.h\n" );
@@ -340,43 +333,52 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
 
 void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine ) {
 
+	//synchronize
+	MPI::COMM_WORLD.Barrier();
+
     // Print stuff
     if ( _DisplayFlag ) {
         printVtk( _Nt );
     }
 
     while (( _T < endTime ) && (_stopFlag == false)) {
+
+		//synchronize
+		MPI::COMM_WORLD.Barrier();
+
         // Compute the time-step
         /*
             _Dt = alpha * _Dt_c with 0.8 < alpha < 0.98
             see [Belytschko, pp. 315]
         */ 
         _Dt = 0.8 * _Dt_c;
-	timeStepRefine(refine);		//refine timestep if needed using the time-step flags.
+		timeStepRefine(refine);		//refine timestep if needed using the time-step flags.
 
         // Increase current time and time-step, update time-step flags
         _T += _Dt;
         _Nt++;
-	_tFlag[0] = _tFlag[1];	//save current time-step flag
-	_tFlag[1] = 0;		//initialize new time-step flag
-	_stopFlag = false;	//initialize stop flag
+		_tFlag[0] = _tFlag[1];	//save current time-step flag
+		_tFlag[1] = 0;		//initialize new time-step flag
+		_stopFlag = false;	//initialize stop flag
 	
         // Explicit Newmark
-        NewmarkPred();
-        NewmarkReso();
-        NewmarkCorr();
+        MPI::COMM_WORLD.Barrier(); NewmarkPred();
+        	MPI::COMM_WORLD.Barrier(); NewmarkReso();
+        	MPI::COMM_WORLD.Barrier(); NewmarkCorr();
 
-	//Check stability and decide on adaptive time-stepping
- 	checkStable();
+		//Check stability and decide on adaptive time-stepping
+	 	checkStable();
 
-	//Count the number of fragments
-	fragCount();
+		//Count the number of fragments
+		fragCount();
 
         // Energy balance check
         energBalance();
 
         // Update
+		MPI::COMM_WORLD.Barrier();
         update();
+		MPI::COMM_WORLD.Barrier();
 
         // Print stuff
         if ( _DisplayFlag ) {
@@ -391,44 +393,49 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
             }
         }
 	
-	//print stress vs. theta graphs
+		//print stress vs. theta graphs
         if ( _Nt % _Nx == 0 ) {
-	    printSTheta();
-	}
+	    		printSTheta();
+		}
 
-	//print the rest of the table/graph data
-	if ( (( _Nt - 1 ) % printFrequency) == 0 ) {
-            printNodalInfo();
-            printElmInfo();
-	    printCohLaw();
-            printFrags();
-	    printGlobalInfo();
-	}
+		//print the rest of the table/graph data
+		if ( (( _Nt - 1 ) % printFrequency) == 0 ) {
+		        printNodalInfo();
+		        printElmInfo();
+			printCohLaw();
+		        printFrags();
+			printGlobalInfo();
+		}
+
+		//synchronize
+		MPI::COMM_WORLD.Barrier();
     }
 
-    std::cout << "---------------------------" << std::endl;
-    std::cout << "Execution Finished" << std::endl;
-    std::cout << "Number of Fragments:   " << _numFrag << std::endl;
-    std::cout << "Number of Iterations:  " << _Nt << std::endl;
-    std::cout << "Final Cohesive Energy: " << _Wcoh[0] << std::endl;
-    std::cout << "Final Stability Ratio: " << _Wsum / _Wmax << std::endl;
-    std::cout << "---------------------------" << std::endl;
+	if (_myid == 0 ) {
+		std::cout << "---------------------------" << std::endl;
+		std::cout << "Execution Finished" << std::endl;
+		std::cout << "Number of Fragments:   " << _numFrag << std::endl;
+		std::cout << "Number of Iterations:  " << _Nt << std::endl;
+		std::cout << "Final Cohesive Energy: " << _Wcoh[0] << std::endl;
+		std::cout << "Final Stability Ratio: " << _Wsum / _Wmax << std::endl;
+		std::cout << "---------------------------" << std::endl;
 
-    //Determine finishing time
-    time_t rawtime;
-    time ( &rawtime );
-    struct tm * tinf = localtime ( &rawtime );
+		//Determine finishing time
+		time_t rawtime;
+		time ( &rawtime );
+		struct tm * tinf = localtime ( &rawtime );
 
-    //Close out log file
-    FILE * pFile;
-    pFile = fopen ( _logPath.c_str(), "a" );
-    fprintf( pFile, "\n\n## Execution finished\n" );
-    fprintf( pFile, "##    time: %s", asctime( tinf ) );
-    fprintf( pFile, "##    number of fragments: %u\n", _numFrag );
-    fprintf( pFile, "##    number of iterations: %u\n", _Nt );
-    fprintf( pFile, "##    final cohesive energy: %e\n", _Wcoh[0] );
-    fprintf( pFile, "##    final stability ratio: %e\n", _Wsum/_Wmax );
-    fclose( pFile );
+		//Close out log file
+		FILE * pFile;
+		pFile = fopen ( _logPath.c_str(), "a" );
+		fprintf( pFile, "\n\n## Execution finished\n" );
+		fprintf( pFile, "##    time: %s", asctime( tinf ) );
+		fprintf( pFile, "##    number of fragments: %u\n", _numFrag );
+		fprintf( pFile, "##    number of iterations: %u\n", _Nt );
+		fprintf( pFile, "##    final cohesive energy: %e\n", _Wcoh[0] );
+		fprintf( pFile, "##    final stability ratio: %e\n", _Wsum/_Wmax );
+		fclose( pFile );
+	}
 
 	//end parallel run
 	MPI::COMM_WORLD.Barrier();
@@ -437,6 +444,8 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 }
 
 void CartRing::printHisto() {
+	if (_myid > 0) return;
+
     // Prints Histogram and scaled 1-cdf figure
     if (_numFrag > 1) {
         plotHisto();
@@ -565,6 +574,7 @@ void CartRing::grabInfo (double& runTime, unsigned& numFrag, unsigned& nIter, do
 				std::vector<unsigned>& fHisto, std::vector<std::vector<double> >& fragInvCDF){
     //Grabs information from a completed run and returns it to the post-processor
     //Returns all values
+	if (_myid > 0) return;
     runTime = ( std::clock() - _start ) / (double) CLOCKS_PER_SEC;
     numFrag = _numFrag;
     nIter = _Nt;
@@ -583,6 +593,7 @@ void CartRing::grabInfo (double& runTime, unsigned& numFrag, unsigned& nIter, do
 				double& Wmax, double& meanFragLength, double& WsprD){
     //Grabs information from a completed run and returns it to the post-processor
     //Returns doubles only
+	if (_myid > 0) return;
     runTime = ( std::clock() - _start ) / (double) CLOCKS_PER_SEC;
     numFrag = _numFrag;
     nIter = _Nt;
@@ -601,6 +612,37 @@ void CartRing::defectLimit (const double& defectRange) {
 
 /*------------------------------ P R I V A T E -------------------------------*/
 
+void CartRing::domainDecomposition() {
+
+	_local = vector<bool>(2*_Nx);
+	_owner = vector<int>(2*_Nx);
+	vector<int> owner = vector<int>(2*_Nx);
+	_begin = (_myid*_Nx)/_numprocs;
+	_end = ((_myid+1)*_Nx)/_numprocs-1;
+	//assign whether the node is to be owned locally or not
+	for (unsigned i = 0; i < 2*_Nx; ++i) {
+	
+		if ((i >= 2*_begin+1 && i <= 2*_end+2) || (i == 0 && _myid == _numprocs-1)) {
+			_local[i] = true;
+			cout << "node " << i << " local to processor " << _myid << endl;
+			owner[i] = _myid;
+		} else {
+			_local[i] = false;
+		}
+	}
+	
+	//distribute who owners of nodes are
+	MPI::COMM_WORLD.Allreduce (&owner[0] , &_owner[0] , (int)2*_Nx , MPI::INT ,MPI::SUM);
+	 
+	for (unsigned i = 0; i < 2*_Nx; ++i) { 
+		if (_local[i]) {assert(_owner[i] == _myid);
+		cout << "node " << i << " on processor " << _myid << "okay" << endl; }	
+
+	}
+
+	cout << "Processor: " << _myid << " of " << _numprocs << ". " << _begin << " to " << _end << endl;
+}
+
 std::string CartRing::convertInt(int number) const
 {
     if (number == 0)
@@ -612,7 +654,7 @@ std::string CartRing::convertInt(int number) const
         temp+=number%10+48;
         number/=10;
     }
-    for (int i=0;i<temp.length();i++)
+    for (unsigned i=0;i<temp.length();i++)
         returnvalue+=temp[temp.length()-i-1];
     return returnvalue;
 }
@@ -731,7 +773,7 @@ void CartRing::buildDiscretization () {
 
 void CartRing::NewmarkPred () {
 
-    for ( unsigned i = 0; i < _NodPos.size(); i++ ) {
+    for ( unsigned i = _begin*2; i <= _end*2+1; i++ ) {
         // Predict Velocities
         _Vel[i][1][0] = _Vel[i][0][0] + 0.5 * _Dt * _Acc[i][0][0];
         _Vel[i][1][1] = _Vel[i][0][1] + 0.5 * _Dt * _Acc[i][0][1];
@@ -749,13 +791,13 @@ void CartRing::NewmarkReso () {
     // Build the spring force vector, and spring energy values
     _Wspr = 0.0;
     _WsprD = 0.0;
-    for ( unsigned i = 0; i < _SprCon.size(); i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         _Wspr += sprForc( i );
     }
 
     //Update and store plateau-locating data
     if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
-	_Wcoh100[0] = _Wcoh[0];
+		_Wcoh100[0] = _Wcoh[0];
     }
     _dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
     _dWcoh[1] = _Wcoh[0];
@@ -837,6 +879,9 @@ void CartRing::NewmarkCorr () {
 }
 
 double CartRing::sprForc ( const unsigned sprNum ) {
+
+	//Update boundary spring locations to be used for ->stress->sprVecPred and -sprVecPred, if necessary
+//	exchangeBoundaryNodes(sprNum);
 
     // Compute the stress
     _Stress[sprNum] = stress( sprNum );
@@ -1628,6 +1673,11 @@ std::vector<double> CartRing::sprVecPred ( const unsigned sprNum ) const {
     // Get the connectivity of the element sprNum
     unsigned nod_1 = _SprCon[sprNum].first;
     unsigned nod_2 = _SprCon[sprNum].second;
+	
+	if (!_local[nod_1] || !_local[nod_2]) {
+		cout << "sprVecPred:  " << "(" << sprNum << ") " << nod_1 << " - "  << _local[nod_1] << " || " << nod_2 << " - " << _local[nod_2] << endl;
+//		loadNonLocal	
+	}
 
     //Calculate expected element length vector
     std::vector<double> elmVec (2);
@@ -1663,6 +1713,7 @@ std::vector<double> CartRing::cohVecPred ( const unsigned cohNum ) const {
 /*------------------------------- P U B L I C --------------------------------*/
 
 void CartRing::plotAtNodes ( const std::vector<unsigned>& NodalIds ) {
+	if (_myid > 0) return;
 
     // Gnuplot file for radial velocity 
     FILE * pFileVr;
@@ -1728,6 +1779,7 @@ void CartRing::plotAtNodes ( const std::vector<unsigned>& NodalIds ) {
 }
 
 void CartRing::plotAtElms ( const std::vector<unsigned>& ElmIds ) {
+	if (_myid > 0) return;
 
     // Gnuplot file for stresses
     FILE * pFileS;
@@ -1771,6 +1823,7 @@ void CartRing::plotAtElms ( const std::vector<unsigned>& ElmIds ) {
 }
 
 void CartRing::plotEnergies () {
+	if (_myid > 0) return;
 
     // Gnuplot file for energies
     FILE * pFileW;
@@ -1828,6 +1881,8 @@ void CartRing::plotEnergies () {
 }
 
 void CartRing::plotCohLaw (const std::vector<unsigned>& cohNums){
+	if (_myid > 0) return;
+
     _cLaw.resize( cohNums.size() );
     for (unsigned i = 0; i < cohNums.size(); i++){
 	_cLaw[i] = cohNums[i];
@@ -1876,6 +1931,9 @@ void CartRing::plotCohLaw (const std::vector<unsigned>& cohNums){
 }
 
 void CartRing::plotFrags (){
+
+	if (_myid > 0) return;
+
     // Gnuplot file for fragmentation
     FILE * pFileW;
     std::string fragFile = _path+"/gnuplot/plotFragInfo.plt";		//../results
@@ -1924,6 +1982,8 @@ void CartRing::plotFrags (){
 }
 
 void CartRing::plotHisto () {
+	if (_myid > 0) return;
+
     // Gnuplot file for fragmentation histogram
     FILE * pFileW;
     std::string histoFile = _path+"/gnuplot/plotHisto.plt";		//../results
@@ -1961,6 +2021,8 @@ void CartRing::plotHisto () {
 }
 
 void CartRing::plotSTheta () {
+	if (_myid > 0) return;
+
     // Gnuplot file for fragmentation histogram
     FILE * pFileW;
     std::string sThetaFile = _path+"/gnuplot/plotSTheta.plt";	//../results/
@@ -2015,7 +2077,7 @@ void CartRing::display ( const unsigned timStepNumElas,
 /*------------------------------ P R I V A T E -------------------------------*/
 
 void CartRing::printConnec () const {
-
+	if (_myid > 0) return;
     if ( _Nx < 10 ) {
         printf ( "|--------------------------------------|\n" );
         printf ( "|           Connectivities             |\n" );
@@ -2033,6 +2095,7 @@ void CartRing::printConnec () const {
 }
 
 void CartRing::printVtk ( const unsigned timStepNum ) const {
+	if (_myid > 0) return;
 
     // Build a name for the vtk file
     std::string resuPath = _path+"/vtkFiles/";			//../results
@@ -2257,6 +2320,7 @@ void CartRing::printSTheta () const {
 }
 
 void CartRing::printClean () const {
+	if (_myid > 0) return;
 
     std::string cleanPath = _path+"/clean.sh";
     FILE * pFile;
@@ -2276,6 +2340,7 @@ void CartRing::printClean () const {
     fprintf( pFile, "rm plot.sh\n" );
     fclose( pFile );
     std::string shellCmd = "chmod u+x " + cleanPath;
-    int status = system( shellCmd.c_str() );
+    //int status = system( shellCmd.c_str() );
+	system( shellCmd.c_str() );
 
 }

@@ -156,6 +156,14 @@ private:
     //!  M E T H O D S    F O R    R E S O L U T I O N
     //!
 
+	//! Perform domain decomposition
+	/*!
+		\brief divide mesh into different processors; assign _local & _owned to reveal if nodes are locally owned and if not, who the owner is
+	*/	
+	void domainDecomposition();
+
+
+	//convert integer to string
 	std::string convertInt ( int in) const;
 
     //! Method to build the mesh
@@ -376,6 +384,7 @@ private:
     double _R0;
     unsigned _Nx;
 	std::vector<bool> _local;
+	std::vector<int> _owner;
 	unsigned _begin;
 	unsigned _end;
     double _c;

@@ -15,7 +15,7 @@
 #include <iostream>
 #include <math.h>
 #include "matPropGen.h"
-//#include "mpi.h"
+#include "mpi.h"
 
 using namespace std;
 
@@ -26,7 +26,7 @@ int main () {
     double A   = 1.0e-6;   // in m^2
     double rho = 2.75e+3;  // in kg/m3
     double E   = 2.75e+11; // in Pa
-    int nx     = 20;
+    int nx     = 8;
 //    std::string path = "/home/ajs84/Software/cartRing/results";
 //    std::string path = "~/andrew/Duke/results";
 	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
@@ -84,13 +84,14 @@ int main () {
     double refine = 0.2;
 	ring.solve( totalTime, printFreq, refine );
     ring.printHisto();
-    double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax; double WsprD;
-    std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
-    std::vector<std::vector<double> >fragInvCDF;
-    ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
 
-    std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
-
+	double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax; double WsprD;
+	std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
+	std::vector<std::vector<double> >fragInvCDF;
+	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
+	if (runTime > 0) {	//should eliminate _myid >0
+		std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
+	}
     return 0;
 }
 

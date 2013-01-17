@@ -2,5 +2,5 @@ Notes:
 
 future improvements:
 -parallelize (by domain)
--make consistent time-step??
--explore implicit integration
+-use true stress (find area via inclusion of poisson's ratio)
+-explore log-strain
