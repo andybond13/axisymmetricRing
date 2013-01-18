@@ -879,6 +879,7 @@ void CartRing::NewmarkCorr () {
     //Compute kinetic energy
     _Wkin = 0.0;
     for ( unsigned i = 0; i < _NodPos.size(); i++ ) {
+		if (!_local[i]) continue;
 
         // Update velocities
         /* SHOULD ACCOUNT FOR BOUNDARY CONDITIONS */
@@ -886,7 +887,7 @@ void CartRing::NewmarkCorr () {
         _Vel[i][2][1] = _Vel[i][1][1] + 0.5 * _Dt * _Acc[i][1][1];
 
         // Compute the kinematic energy
-        _Wkin += 0.5 * _m * ( pow( _Vel[i][2][0], 2 ) + pow( _Vel[i][2][1], 2 ) );
+        _Wkin += 0.5 * _m * ( pow( _Vel[i][2][0], 2 ) + pow( _Vel[i][2][1], 2 ) );			//TODO: sum the local versions up and broadcast
  
         // Displacements
         _Dis[i][2][0] = _Dis[i][1][0];
