@@ -304,7 +304,7 @@ private:
     /*!
         \brief Method to exchange the boundary nodes for calculating spring force, using MPI
     */
-    void exchangeBoundaryNodes (const unsigned sprNum);
+    void exchangeBoundaryNodes ();
 
     //!
     //!  M E T H O D S    T O    P R I N T    S T U F F

@@ -788,6 +788,9 @@ void CartRing::NewmarkPred () {
 
 void CartRing::NewmarkReso () {
 
+	//Update boundary spring locations to be used for ->stress->sprVecPred and -sprVecPred, if necessary
+	exchangeBoundaryNodes();
+
     // Build the spring force vector, and spring energy values
     _Wspr = 0.0;
     _WsprD = 0.0;
@@ -879,9 +882,6 @@ void CartRing::NewmarkCorr () {
 }
 
 double CartRing::sprForc ( const unsigned sprNum ) {
-
-	//Update boundary spring locations to be used for ->stress->sprVecPred and -sprVecPred, if necessary
-	exchangeBoundaryNodes(sprNum);
 
     // Compute the stress
     _Stress[sprNum] = stress( sprNum );
@@ -1699,37 +1699,70 @@ std::vector<double> CartRing::cohVecPred ( const unsigned cohNum ) const {
     return elmVec;
 }
 
-void CartRing::exchangeBoundaryNodes ( const unsigned sprNum ) { 
-    // Get the connectivity of the element sprNum
-    unsigned nod_1 = _SprCon[sprNum].first;
-    unsigned nod_2 = _SprCon[sprNum].second;
+void CartRing::exchangeBoundaryNodes () { 
+
+	//create list of node to be sent, origin, and destination
+	vector<unsigned> nodeList;
+	vector<int> originList;
+	vector<int> destList;
+	int size;
+	MPI::COMM_WORLD.Barrier();
 	
-	if (!_local[nod_1] || !_local[nod_2]) {
-		int owner1 = _owner[nod_1];
-		int owner2 = _owner[nod_2];
-		cout << "sprVecPred:  " << "(" << sprNum << ") " << nod_1 << " - "  << owner1 << " || " << nod_2 << " - " << owner2 << endl;
+	if (_myid == 0) {
+		for (unsigned sprNum = 0; sprNum < _Nx; ++sprNum) {
 
-		//check to make sure
-		assert(owner1 != owner2);
+			// Get the connectivity of the element sprNum
+			unsigned nod_1 = _SprCon[sprNum].first;
+			unsigned nod_2 = _SprCon[sprNum].second;
 
-		//figure out where to send to/from
-		int destination = (int)_myid;
-		int origin = owner1 + owner2 - destination;
+			int owner1 = _owner[nod_1];
+			int owner2 = _owner[nod_2];
+	
+			if (owner1 != owner2) {
+				//cout << "sprVecPred:  " << "(" << sprNum << ") " << nod_1 << " - "  << owner1 << " || " << nod_2 << " - " << owner2 << endl;
 
-		//figure out which node to send to/from
-		int node = nod_1;
-		if (_local[nod_1])
-			node = nod_2;	//node 1 is local, node 2 is not!
-		else if (_local[nod_2])
-			node = nod_1;	//node 2 is local, node 1 is not!
-		else 
-			assert(1==0);
-		
-
-		//mpisend
-		//COMM_WORLD.Send(&_NodPos[node][0], 2, MPI::INT, origin, destination );
-		//mpireceive
+				//owner 1 needs to send nod_1 to owner 2; owner 2 needs to send nod_2 to owner 1
+				nodeList.push_back(nod_1); originList.push_back(owner1); destList.push_back(owner2);
+				nodeList.push_back(nod_2); originList.push_back(owner2); destList.push_back(owner1);
+			}
+		}
+		size = nodeList.size();
 	}
+
+	//broadcast sizes and resize vectors
+	MPI::COMM_WORLD.Barrier();
+	MPI::COMM_WORLD.Bcast( &size, 1, MPI::INT, 0);
+	nodeList.resize(size); originList.resize(size); destList.resize(size);		
+	
+	//broadcast boundary nodes to be exchanged	
+	MPI::COMM_WORLD.Barrier();
+	MPI::COMM_WORLD.Bcast( &nodeList[0], nodeList.size(), MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast( &originList[0], nodeList.size(), MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast( &destList[0], nodeList.size(), MPI::INT, 0);
+	MPI::COMM_WORLD.Barrier();
+
+	//send all nodes
+	for (unsigned i = 0; i < nodeList.size(); ++i) {
+		int tag = i*2;
+		if (_myid == originList[i]) {
+			COMM_WORLD.Send(&_NodPos[nodeList[i]][0], 2, MPI::INT, destList[i], tag);
+			COMM_WORLD.Send(&_Dis[nodeList[i]][1][0], 2, MPI::INT, destList[i], tag+1);
+		}
+	}
+
+	MPI::COMM_WORLD.Barrier();
+
+	//receive all nodes
+	for (unsigned i = 0; i < nodeList.size(); ++i) {
+		int tag = i*2;
+		if (_myid == destList[i]) {
+			COMM_WORLD.Recv(&_NodPos[nodeList[i]][0], 2, MPI::INT, originList[i], tag);
+			COMM_WORLD.Recv(&_Dis[nodeList[i]][1][0], 2, MPI::INT, originList[i], tag+1);
+		}
+	}
+
+	MPI::COMM_WORLD.Barrier();
+
 	return;
 }
 
