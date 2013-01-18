@@ -778,7 +778,9 @@ void CartRing::buildDiscretization () {
 
 void CartRing::NewmarkPred () {
 
-    for ( unsigned i = _begin*2; i <= _end*2+1; i++ ) {
+    for ( unsigned i = 0; i < 2*_Nx; i++ ) {
+		if (!_local[i]) continue;
+
         // Predict Velocities
         _Vel[i][1][0] = _Vel[i][0][0] + 0.5 * _Dt * _Acc[i][0][0];
         _Vel[i][1][1] = _Vel[i][0][1] + 0.5 * _Dt * _Acc[i][0][1];
@@ -816,7 +818,7 @@ void CartRing::NewmarkReso () {
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
     _Wcoh[1] = 0.0;
-    for ( unsigned i = 0; i < _CohCon.size(); i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         std::vector<double> wCoh = cohForc( i );
         _Wcoh[0] += wCoh[0];
         _Wcoh[1] += wCoh[1];
@@ -827,32 +829,33 @@ void CartRing::NewmarkReso () {
     _dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
     _dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
     if ((_dWcoh[4] == 0.0) && (_dWcoh[3] < 0)) {
-	_dWcoh[4] = _T;					//set time deriv if ema goes negative
+		_dWcoh[4] = _T;					//set time deriv if ema goes negative
     } else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
-	_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
+		_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
     } else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
-	_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
+		_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
     }
 
     //Calculate moving averages for plateau location, discretely
     if (_Nt % 100 == 0) {
-	double old = _Wcoh100[2];
-	_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
-	_Wcoh100[1] = _T;
-        if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
-	    _Wcoh100[3] = _T;				//set time deriv if ema goes negative
-    	} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
-	    _Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
- 	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
-	   // _stopFlag = true;			//stop based on d(EMA(tangents(Wcoh))),after 3x
-	}
+		double old = _Wcoh100[2];
+		_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
+		_Wcoh100[1] = _T;
+		if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
+			_Wcoh100[3] = _T;				//set time deriv if ema goes negative
+		} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
+			_Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
+	 	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
+		   // _stopFlag = true;			//stop based on d(EMA(tangents(Wcoh))),after 3x
+		}
     }
 
 
     //Adjust for constant  strain rate --calculate _VelForcReq needed to maintain const SR
     if ( _ConstSRFlag == 1 ) {
         for ( unsigned i = 0; i < _NodPos.size(); i++) {
-	    calcVelForc(i);
+			if (!_local[i]) continue;
+		    calcVelForc(i);
         }
     }
 
@@ -860,6 +863,8 @@ void CartRing::NewmarkReso () {
     // Build the external force vector, energy & Solve the system
 
     for ( unsigned i = 0; i < _NodPos.size(); i++ ) {
+		if (!_local[i]) continue;
+
         // Compute the external energy
         _Wext += extForc( i );
 
@@ -926,6 +931,12 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
     // Find out the nodes connected to cohNum link
     unsigned nod_1 = _CohCon[cohNum].first;
     unsigned nod_2 = _CohCon[cohNum].second;
+
+	//ensure that these are owned by the this processor
+	assert(_local[nod_1] && _local[nod_2]);
+
+	//ensure that these are owned by the same processor
+	assert(_owner[nod_1] == _owner[nod_2]);
 
     //Create and assign variable that indicates if this link is open or closed
 	//false = closed, true = open
@@ -1018,6 +1029,9 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
 }
 
 void CartRing::calcVelForc ( const unsigned i ) {
+
+	assert(_local[i]);
+
     //Calculate force at nodes required to maintain constant strain rate
     double type = _ValVelBC[0]; 		//1 for radial, 2 for rotational
     double target = _ValVelBC[1];
@@ -1063,6 +1077,8 @@ void CartRing::calcVelForc ( const unsigned i ) {
 }
 
 double CartRing::extForc ( const unsigned nodNum ) {
+	assert(_local[nodNum]);
+
     //reset values to zero
     _Fext[nodNum][1][0] = 0;
     _Fext[nodNum][1][1] = 0; 
