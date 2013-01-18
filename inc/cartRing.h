@@ -302,9 +302,12 @@ private:
 
     //! Use MPI to exchange the boundary nodes for calculating spring force
     /*!
-        \brief Method to exchange the boundary nodes for calculating spring force, using MPI
+        \brief Method to define the boundary nodes
+			   Method to exchange the boundary nodes for calculating spring force, using MPI
     */
+    void defineBoundaryNodes ();
     void exchangeBoundaryNodes ();
+	void exchangeSprForc ();
 
     //!
     //!  M E T H O D S    T O    P R I N T    S T U F F
@@ -400,6 +403,12 @@ private:
     std::string _logPath;
     double _defectRange;
 	std::clock_t _start;
+
+	//boundary node and owner/neighbor list
+	std::vector<unsigned> _nodeList;
+	std::vector<int> _originList;
+	std::vector<int> _destList;
+//	std::vector<int> _dirList;	//1 for owner 1->owner 2. 2 for owner2->owner1.
 
     //! Attributes describing the mesh
     /*!

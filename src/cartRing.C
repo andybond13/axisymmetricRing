@@ -641,6 +641,7 @@ void CartRing::domainDecomposition() {
 
 	//synchronize
 	MPI::COMM_WORLD.Barrier();
+
 }
 
 std::string CartRing::convertInt(int number) const
@@ -769,6 +770,10 @@ void CartRing::buildDiscretization () {
     _T = 0.0;
     _Nt = 0; 
 
+	//define boundary nodes
+	defineBoundaryNodes();
+	MPI::COMM_WORLD.Barrier();
+
 }
 
 void CartRing::NewmarkPred () {
@@ -797,6 +802,9 @@ void CartRing::NewmarkReso () {
     for ( unsigned i = _begin; i <= _end; i++ ) {
         _Wspr += sprForc( i );
     }
+
+	//Update spring forces on boundary nodes
+	exchangeSprForc();
 
     //Update and store plateau-locating data
     if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
@@ -897,7 +905,6 @@ double CartRing::sprForc ( const unsigned sprNum ) {
     _Fspr[_SprCon[sprNum].first ][0] =        axiForc * elmVec[0] / elmLength;
     _Fspr[_SprCon[sprNum].first ][1] =        axiForc * elmVec[1] / elmLength;
     _Fspr[_SprCon[sprNum].second][0] = -1.0 * axiForc * elmVec[0] / elmLength;
-    _Fspr[_SprCon[sprNum].second][1] = -1.0 * axiForc * elmVec[1] / elmLength;
 
     // Compute the element strain
     double strain = ( pow( elmLength, 2 ) - pow( _Dx, 2 ) )
@@ -1699,18 +1706,11 @@ std::vector<double> CartRing::cohVecPred ( const unsigned cohNum ) const {
     return elmVec;
 }
 
-void CartRing::exchangeBoundaryNodes () { 
-
+void CartRing::defineBoundaryNodes() { 
 	//create list of node to be sent, origin, and destination
-	vector<unsigned> nodeList;
-	vector<int> originList;
-	vector<int> destList;
 	int size;
-	MPI::COMM_WORLD.Barrier();
-	
 	if (_myid == 0) {
 		for (unsigned sprNum = 0; sprNum < _Nx; ++sprNum) {
-
 			// Get the connectivity of the element sprNum
 			unsigned nod_1 = _SprCon[sprNum].first;
 			unsigned nod_2 = _SprCon[sprNum].second;
@@ -1722,46 +1722,80 @@ void CartRing::exchangeBoundaryNodes () {
 				//cout << "sprVecPred:  " << "(" << sprNum << ") " << nod_1 << " - "  << owner1 << " || " << nod_2 << " - " << owner2 << endl;
 
 				//owner 1 needs to send nod_1 to owner 2; owner 2 needs to send nod_2 to owner 1
-				nodeList.push_back(nod_1); originList.push_back(owner1); destList.push_back(owner2);
-				nodeList.push_back(nod_2); originList.push_back(owner2); destList.push_back(owner1);
+				_nodeList.push_back(nod_1); _originList.push_back(owner1); _destList.push_back(owner2); //_dirList.push_back(1);
+				//_nodeList.push_back(nod_2); _originList.push_back(owner2); _destList.push_back(owner1); _dirList.push_back(2);
 			}
 		}
-		size = nodeList.size();
+		size = _nodeList.size();
 	}
 
-	//broadcast sizes and resize vectors
 	MPI::COMM_WORLD.Barrier();
+	//broadcast sizes and resize vectors
 	MPI::COMM_WORLD.Bcast( &size, 1, MPI::INT, 0);
-	nodeList.resize(size); originList.resize(size); destList.resize(size);		
-	
+	_nodeList.resize(size); _originList.resize(size); _destList.resize(size);// _dirList.resize(size);		
+
 	//broadcast boundary nodes to be exchanged	
 	MPI::COMM_WORLD.Barrier();
-	MPI::COMM_WORLD.Bcast( &nodeList[0], nodeList.size(), MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast( &originList[0], nodeList.size(), MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast( &destList[0], nodeList.size(), MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast( &_nodeList[0], _nodeList.size(), MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast( &_originList[0], _nodeList.size(), MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast( &_destList[0], _nodeList.size(), MPI::INT, 0);
+	//MPI::COMM_WORLD.Bcast( &_dirList[0], _nodeList.size(), MPI::INT, 0);
 	MPI::COMM_WORLD.Barrier();
+}
 
+void CartRing::exchangeBoundaryNodes () { 
+	//use direction one to pull spring nodes in from neighboring elements
 	//send all nodes
-	for (unsigned i = 0; i < nodeList.size(); ++i) {
+	for (unsigned i = 0; i < _nodeList.size(); ++i) {
 		int tag = i*2;
-		if (_myid == originList[i]) {
-			COMM_WORLD.Send(&_NodPos[nodeList[i]][0], 2, MPI::INT, destList[i], tag);
-			COMM_WORLD.Send(&_Dis[nodeList[i]][1][0], 2, MPI::INT, destList[i], tag+1);
+		if (_myid == _originList[i] /*&& _dirList[i] == 1*/) {
+			COMM_WORLD.Send(&_NodPos[_nodeList[i]][0], 2, MPI::INT, _destList[i], tag);
+			COMM_WORLD.Send(&_Dis[_nodeList[i]][1][0], 2, MPI::INT, _destList[i], tag+1);
+			cout << "disp: sent node " << _nodeList[i] << " from " << _originList[i] << " to " << _destList[i] << endl;
 		}
 	}
 
 	MPI::COMM_WORLD.Barrier();
 
 	//receive all nodes
-	for (unsigned i = 0; i < nodeList.size(); ++i) {
+	for (unsigned i = 0; i < _nodeList.size(); ++i) {
 		int tag = i*2;
-		if (_myid == destList[i]) {
-			COMM_WORLD.Recv(&_NodPos[nodeList[i]][0], 2, MPI::INT, originList[i], tag);
-			COMM_WORLD.Recv(&_Dis[nodeList[i]][1][0], 2, MPI::INT, originList[i], tag+1);
+		if (_myid == _destList[i] /* && _dirList[i] == 1*/) {
+			COMM_WORLD.Recv(&_NodPos[_nodeList[i]][0], 2, MPI::INT, _originList[i], tag);
+			COMM_WORLD.Recv(&_Dis[_nodeList[i]][1][0], 2, MPI::INT, _originList[i], tag+1);
 		}
 	}
 
 	MPI::COMM_WORLD.Barrier();
+
+	return;
+}
+
+void CartRing::exchangeSprForc () {
+	//use direction two to set spring nodes on neighboring elements' spring force	
+
+	//send all nodes -- reverse direction
+	for (unsigned i = 0; i < _nodeList.size(); ++i) {
+		int tag = i;
+		if (_myid == _destList[i] /*&& _dirList[i] == 1*/) {
+			COMM_WORLD.Send(&_Fspr[_nodeList[i]][0], 2, MPI::INT, _originList[i], tag);
+			cout << "force: sent node " << _nodeList[i] << " from " << _destList[i] << " to " << _originList[i] << endl;
+		}
+	}
+
+	MPI::COMM_WORLD.Barrier();
+
+	//receive all nodes -- reverse direction
+	for (unsigned i = 0; i < _nodeList.size(); ++i) {
+		int tag = i;
+		if (_myid == _originList[i]  /*&& _dirList[i] == 1*/) {
+			COMM_WORLD.Recv(&_Fspr[_nodeList[i]][0], 2, MPI::INT, _destList[i], tag);
+		}
+	}
+
+	MPI::COMM_WORLD.Barrier();
+
+
 
 	return;
 }
