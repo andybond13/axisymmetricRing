@@ -8,5 +8,6 @@ todo:
 
 future improvements:
 -parallelize (by domain)
+-consider using boost vectors to simplify code (you can do operations on them)
 -use true stress (find area via inclusion of poisson's ratio)
 -explore log-strain
