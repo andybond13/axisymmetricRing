@@ -325,7 +325,7 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
         std::cout << "Direction " << velDir << " unknown! " << std::endl; 
     }
      //count initial velocity as an initial external work/given energy
-    _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2);
+    _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2) * (double)(_end-_begin)/(double)_Nx;
 
 }
 
@@ -436,7 +436,7 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 	}
 
 	//end parallel run
-	MPI::COMM_WORLD.Barrier();
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_WsprD, &_WsprD, 1, MPI::DOUBLE, MPI_SUM);
 	MPI::Finalize(); 
 
 }
@@ -804,12 +804,11 @@ void CartRing::NewmarkReso () {
     for ( unsigned i = _begin; i <= _end; i++ ) {
         _Wspr += sprForc( i );
     }
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wspr, &_Wspr, 1, MPI::DOUBLE, MPI_SUM);
 
 	//Update spring forces on boundary nodes
 	exchangeSprForc();
 
-	if(_myid == 0) {
+	if(_myid == 0) {																										//correct?
 		//Update and store plateau-locating data
 		if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
 			_Wcoh100[0] = _Wcoh[0];
@@ -817,6 +816,9 @@ void CartRing::NewmarkReso () {
 		_dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
 		_dWcoh[1] = _Wcoh[0];
 	}
+	MPI::COMM_WORLD.Barrier(); MPI::COMM_WORLD.Bcast( &_Wcoh100[0], 1, MPI::INT, 0);
+	MPI::COMM_WORLD.Barrier(); MPI::COMM_WORLD.Bcast( &_dWcoh[1], 2, MPI::INT, 0);
+
 
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
@@ -829,31 +831,32 @@ void CartRing::NewmarkReso () {
 	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wcoh[0], &_Wcoh[0], 2, MPI::DOUBLE, MPI_SUM);
 
     //Calculate moving averages for plateau location, continuously
-    double ratio = 0.9995;
-    _dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
-    _dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
-    if ((_dWcoh[4] == 0.0) && (_dWcoh[3] < 0)) {
-		_dWcoh[4] = _T;					//set time deriv if ema goes negative
-    } else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
-		_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
-    } else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
-		_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
-    }
-
-    //Calculate moving averages for plateau location, discretely
-    if (_Nt % 100 == 0) {
-		double old = _Wcoh100[2];
-		_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
-		_Wcoh100[1] = _T;
-		if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
-			_Wcoh100[3] = _T;				//set time deriv if ema goes negative
-		} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
-			_Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
-	 	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
-		   // _stopFlag = true;			//stop based on d(EMA(tangents(Wcoh))),after 3x
+	if(_myid == 0) {																											//correct?
+		double ratio = 0.9995;
+		_dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
+		_dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
+		if ((_dWcoh[4] == 0.0) && (_dWcoh[3] < 0)) {
+			_dWcoh[4] = _T;					//set time deriv if ema goes negative
+		} else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
+			_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
+		} else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
+			_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
 		}
-    }
 
+		//Calculate moving averages for plateau location, discretely
+		if (_Nt % 100 == 0) {
+			double old = _Wcoh100[2];
+			_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
+			_Wcoh100[1] = _T;
+			if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
+				_Wcoh100[3] = _T;				//set time deriv if ema goes negative
+			} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
+				_Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
+		 	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
+			   // _stopFlag = true;			//stop based on d(EMA(tangents(Wcoh))),after 3x
+			}
+		}
+	}
 
     //Adjust for constant  strain rate --calculate _VelForcReq needed to maintain const SR
     if ( _ConstSRFlag == 1 ) {
@@ -1029,7 +1032,7 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
         // Compute cohesive energy
         wCoh[0] = 0.5 * _A * _SigC[cohNum] * _D[cohNum][1] * _DelC[cohNum];
         wCoh[1] = 0.5 * _A * _sigCoh[cohNum] * _delta[cohNum];
-    }
+    }//MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wext, &_Wext, 1, MPI::DOUBLE, MPI_SUM);
     return wCoh;
 }
 
@@ -1224,15 +1227,26 @@ void CartRing::cohStr ( const unsigned cohNum ) {
 }
 
 void CartRing::energBalance () {
+
+	double _WextT;
+	double _WsprT;
+	double _WsprDT;
+	double _WkinT;
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wext, &_WextT, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wspr, &_WsprT, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_WsprD, &_WsprDT, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wkin, &_WkinT, 1, MPI::DOUBLE, MPI_SUM);
+
+
     //Sum internal energies
-    double Wint = _Wspr + _Wcoh[0] + _Wcoh[1] + _WsprD;
+    double Wint = _WsprT + _Wcoh[0] + _Wcoh[1] + _WsprDT;
     
     //Determine maximum energy component
-    _Wmax = ( Wint > _Wkin ) ? Wint : _Wkin;
-    _Wmax = ( _Wmax > _Wext ) ? _Wmax : _Wext;
+    _Wmax = ( Wint > _WkinT ) ? Wint : _WkinT;
+    _Wmax = ( _Wmax > _WextT ) ? _Wmax : _WextT;
 
     //Sum total energies
-    _Wsum = fabs(_Wkin + Wint - _Wext);
+    _Wsum = fabs(_WkinT + Wint - _WextT);
 
     //Check to see if too much energy is generated - NOTIFICATION @ 1%
     if ( _Wsum > 0.01 * _Wmax) {
@@ -1275,16 +1289,16 @@ void CartRing::checkStable () {
     //	meaning that its past the 95% mark and left of the scaled elastic modulus line
     unsigned temp = 0;
     for (unsigned i = 0; i < _Nx; i++ ){
- 	if ( ( (_delta[i] > 0 ) && ( _D[i][1] < (_sigCoh[i]) / (_E/_Dx) )) || _sigCoh[i] > 0.95 * _SigC[i]) {
-	    temp += 1; 		//count the number of links in this critical region
-	}
+	 	if ( ( (_delta[i] > 0 ) && ( _D[i][1] < (_sigCoh[i]) / (_E/_Dx) )) || _sigCoh[i] > 0.95 * _SigC[i]) {
+			temp += 1; 		//count the number of links in this critical region
+		}
     }
     
     //Activate an additional level of time-step refinement if any link is in critical zone
     if (temp == 0) {
-	_tFlag[1] += 0;		//Keep level as is
+		_tFlag[1] += 0;		//Keep level as is
     } else {
-	_tFlag[1] += 1;		//Add one
+		_tFlag[1] += 1;		//Add one
     }
 
 }
