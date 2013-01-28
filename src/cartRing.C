@@ -1278,7 +1278,7 @@ void CartRing::checkStable () {
 
     //Check to see if any cohesive link is in compression
     unsigned compression = 0;
-    for (unsigned i = 0; i < _sigCoh.size(); i++) {  
+    for (unsigned i = _begin; i < _end; i++) {  
 	if (_sigCoh[i] < 0 ) {
 	    compression = 1;
 	    _tFlag[1] = 1;	//enable one level of time-step refinement
@@ -1288,7 +1288,7 @@ void CartRing::checkStable () {
     //Check to see if any link > 95% critical stress, or is within critical damage range
     //	meaning that its past the 95% mark and left of the scaled elastic modulus line
     unsigned temp = 0;
-    for (unsigned i = 0; i < _Nx; i++ ){
+    for (unsigned i = _begin; i < _end; i++ ){
 	 	if ( ( (_delta[i] > 0 ) && ( _D[i][1] < (_sigCoh[i]) / (_E/_Dx) )) || _sigCoh[i] > 0.95 * _SigC[i]) {
 			temp += 1; 		//count the number of links in this critical region
 		}
@@ -1300,6 +1300,8 @@ void CartRing::checkStable () {
     } else {
 		_tFlag[1] += 1;		//Add one
     }
+
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_tFlag[1], &_tFlag[1], 1, MPI::INT, MPI_MAX);
 
 }
 
