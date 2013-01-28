@@ -804,16 +804,19 @@ void CartRing::NewmarkReso () {
     for ( unsigned i = _begin; i <= _end; i++ ) {
         _Wspr += sprForc( i );
     }
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wspr, &_Wspr, 1, MPI::DOUBLE, MPI_SUM);
 
 	//Update spring forces on boundary nodes
 	exchangeSprForc();
 
-    //Update and store plateau-locating data
-    if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
-		_Wcoh100[0] = _Wcoh[0];
-    }
-    _dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
-    _dWcoh[1] = _Wcoh[0];
+	if(_myid == 0) {
+		//Update and store plateau-locating data
+		if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
+			_Wcoh100[0] = _Wcoh[0];
+		}
+		_dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
+		_dWcoh[1] = _Wcoh[0];
+	}
 
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
@@ -823,6 +826,7 @@ void CartRing::NewmarkReso () {
         _Wcoh[0] += wCoh[0];
         _Wcoh[1] += wCoh[1];
     }
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wcoh[0], &_Wcoh[0], 2, MPI::DOUBLE, MPI_SUM);
 
     //Calculate moving averages for plateau location, continuously
     double ratio = 0.9995;
@@ -1766,8 +1770,8 @@ void CartRing::exchangeBoundaryNodes () {
 	for (unsigned i = 0; i < _nodeList.size(); ++i) {
 		int tag = i*2;
 		if (_myid == _originList[i] /*&& _dirList[i] == 1*/) {
-			COMM_WORLD.Send(&_NodPos[_nodeList[i]][0], 2, MPI::INT, _destList[i], tag);
-			COMM_WORLD.Send(&_Dis[_nodeList[i]][1][0], 2, MPI::INT, _destList[i], tag+1);
+			COMM_WORLD.Send(&_NodPos[_nodeList[i]][0], 2, MPI::DOUBLE, _destList[i], tag);
+			COMM_WORLD.Send(&_Dis[_nodeList[i]][1][0], 2, MPI::DOUBLE, _destList[i], tag+1);
 			cout << "disp: sent node " << _nodeList[i] << " from " << _originList[i] << " to " << _destList[i] << endl;
 		}
 	}
@@ -1778,8 +1782,8 @@ void CartRing::exchangeBoundaryNodes () {
 	for (unsigned i = 0; i < _nodeList.size(); ++i) {
 		int tag = i*2;
 		if (_myid == _destList[i] /* && _dirList[i] == 1*/) {
-			COMM_WORLD.Recv(&_NodPos[_nodeList[i]][0], 2, MPI::INT, _originList[i], tag);
-			COMM_WORLD.Recv(&_Dis[_nodeList[i]][1][0], 2, MPI::INT, _originList[i], tag+1);
+			COMM_WORLD.Recv(&_NodPos[_nodeList[i]][0], 2, MPI::DOUBLE, _originList[i], tag);
+			COMM_WORLD.Recv(&_Dis[_nodeList[i]][1][0], 2, MPI::DOUBLE, _originList[i], tag+1);
 		}
 	}
 
@@ -1795,7 +1799,7 @@ void CartRing::exchangeSprForc () {
 	for (unsigned i = 0; i < _nodeList.size(); ++i) {
 		int tag = i;
 		if (_myid == _destList[i] /*&& _dirList[i] == 1*/) {
-			COMM_WORLD.Send(&_Fspr[_nodeList[i]][0], 2, MPI::INT, _originList[i], tag);
+			COMM_WORLD.Send(&_Fspr[_nodeList[i]][0], 2, MPI::DOUBLE, _originList[i], tag);
 			cout << "force: sent node " << _nodeList[i] << " from " << _destList[i] << " to " << _originList[i] << endl;
 		}
 	}
@@ -1806,7 +1810,7 @@ void CartRing::exchangeSprForc () {
 	for (unsigned i = 0; i < _nodeList.size(); ++i) {
 		int tag = i;
 		if (_myid == _originList[i]  /*&& _dirList[i] == 1*/) {
-			COMM_WORLD.Recv(&_Fspr[_nodeList[i]][0], 2, MPI::INT, _destList[i], tag);
+			COMM_WORLD.Recv(&_Fspr[_nodeList[i]][0], 2, MPI::DOUBLE, _destList[i], tag);
 		}
 	}
 
