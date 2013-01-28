@@ -1315,84 +1315,100 @@ void CartRing::fragCount () {
     _fragLoc.resize(0);
     _numFrag = 0;
     _DSum = 0;
-    for (unsigned i = 0; i < _Nx; i++ ){
-	//Sum the total amount of damage to all links (analogous to WcohD)
-	_DSum += (_D[i][1] >= 1) ? 1 : _D[i][1];
+    for (unsigned i = _begin; i < _end; i++ ){
+		//Sum the total amount of damage to all links (analogous to WcohD)
+		_DSum += (_D[i][1] >= 1) ? 1 : _D[i][1];
 
-	//Check to see if fully broken
-	if (_D[i][1] >= 1){
-		_numFrag += 1;		//Add to fragment count
-		_fragLoc.push_back(i);	//Add location to fragment location list
-	}
+		//Check to see if fully broken
+		if (_D[i][1] >= 1){
+			_numFrag += 1;		//Add to fragment count
+			_fragLoc.push_back(i);	//Add location to fragment location list
+		}
     }
 
-    //Find the length of each fragment
-    if (_numFrag == 1){
-	_fragLength.resize(1);
-	_fragLength[0] = _Nx * _Dx;	//if only one break, length is whole circumference of ring
-    } else {
-	double nElems = 0;
-	_fragLength.resize(_numFrag);
-	for (unsigned k = 0; k < _fragLength.size(); k++){
-	    if (k == 0){
-		//Length (# elems between) from last to first through theta=0=2pi
-		nElems = fabs( _Nx - fabs( _fragLoc[0] - _fragLoc[_numFrag-1])); 
-	    } else {
-		//Length (# elems between)
-		nElems = fabs( _fragLoc[k - 1] - _fragLoc[k]);
-	    }
-	    //Convert number of elements to actual length
-	    _fragLength[k] = nElems * _Dx;
+	//exchange information
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_DSum, &_DSum, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_numFrag, &_numFrag, 1, MPI::INT, MPI_SUM);				//TODO finish this
+/*vector<int> fragLoc (_numFrag);
+	MPI::COMM_WORLD.Allgatherv(&_fragLoc[0], _fragLoc.size(), MPI::INT, &fragLoc[0], fragLoc.size(), MPI::INT);
+
+	if (_myid == 0) {
+		cout << "numFrag = " << _numFrag << endl;
+//for (int i = 0; i < _numFrag; ++i) 		cout << "fragloc(" << i << ") = " << fragLoc[i] << endl;
 	}
-    }
+*/
 
-    //Initialize statistics of fragment length distribution
-    _fMean = 0;
-    _fMed = 0;
-    _fMax = 0;
-    _fMin = 0;
-    _fStDev = 0;
-    _fRange = 0;
+	if (_myid == 0) {
+		//Find the length of each fragment
+		if (_numFrag == 1){
+			_fragLength.resize(1);
+			_fragLength[0] = _Nx * _Dx;	//if only one break, length is whole circumference of ring
+		} else {
+			double nElems = 0;
+			_fragLength.resize(_numFrag);
+			for (unsigned k = 0; k < _fragLength.size(); k++){
+				if (k == 0){
+					//Length (# elems between) from last to first through theta=0=2pi
+					nElems = fabs( _Nx - fabs( _fragLoc[0] - _fragLoc[_numFrag-1])); 
+				} else {
+					//Length (# elems between)
+					nElems = fabs( _fragLoc[k - 1] - _fragLoc[k]);
+				}
+				//Convert number of elements to actual length
+				_fragLength[k] = nElems * _Dx;
+			}
+		}
 
-    //If there are any fragments...
-    if (_numFrag > 0){
-	//Calculate Median
-	// Sort the list in ascending order
-	sort(_fragLength.begin(), _fragLength.end());
+		//MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_fragLength[0], &_fragLength[0], 1, MPI::INT, MPI_SUM);
 
-	if (_numFrag % 2 == 0) {
-		//If even number, take average of two middle values
-		_fMed = ( _fragLength[ (unsigned)(_numFrag * 0.5) ]
-			+ _fragLength[ (unsigned)(_numFrag * 0.5) -1 ] ) * 0.5;
-	} else {
-		//If odd number, take middle value
-		_fMed = _fragLength[ (_numFrag - 1) / 2 ];
-	}
+		//Initialize statistics of fragment length distribution
+		_fMean = 0;
+		_fMed = 0;
+		_fMax = 0;
+		_fMin = 0;
+		_fStDev = 0;
+		_fRange = 0;
 
-	//Calculate Max, Min, Range
-	_fMax = _fragLength.back();
-	_fMin = _fragLength.front();
-	_fRange = _fMax - _fMin;
+		//If there are any fragments...
+		if (_numFrag > 0){
+			//Calculate Median
+			// Sort the list in ascending order
+			sort(_fragLength.begin(), _fragLength.end());
+
+			if (_numFrag % 2 == 0) {
+				//If even number, take average of two middle values
+				_fMed = ( _fragLength[ (unsigned)(_numFrag * 0.5) ]
+					+ _fragLength[ (unsigned)(_numFrag * 0.5) -1 ] ) * 0.5;
+			} else {
+				//If odd number, take middle value
+				_fMed = _fragLength[ (_numFrag - 1) / 2 ];
+			}
+
+			//Calculate Max, Min, Range
+			_fMax = _fragLength.back();
+			_fMin = _fragLength.front();
+			_fRange = _fMax - _fMin;
 	
-	//Calculate Mean
-	for (unsigned k = 0; k < _fragLength.size(); k++){
-		//Sum of lengths
-		_fMean += _fragLength[k];
-	}
-	//Mean = sum / number
-	_fMean = _fMean / _numFrag;
+			//Calculate Mean
+			for (unsigned k = 0; k < _fragLength.size(); k++){
+				//Sum of lengths
+				_fMean += _fragLength[k];
+			}
+			//Mean = sum / number
+			_fMean = _fMean / _numFrag;
 
-	//Calculate Std. Deviation
-	for (unsigned k = 0; k < _fragLength.size(); k++){
-		//Sum of squared (lengths - means)
-		_fStDev += pow( (_fragLength[k] - _fMean), 2);
+			//Calculate Std. Deviation
+			for (unsigned k = 0; k < _fragLength.size(); k++){
+				//Sum of squared (lengths - means)
+				_fStDev += pow( (_fragLength[k] - _fMean), 2);
+			}
+			if (_numFrag > 1) {
+				_fStDev = sqrt( _fStDev / (_numFrag - 1) ) ;
+			} else {
+				_fStDev = sqrt( _fStDev );
+			}
+		}
 	}
-	if (_numFrag > 1) {
-	    _fStDev = sqrt( _fStDev / (_numFrag - 1) ) ;
-	} else {
-	    _fStDev = sqrt( _fStDev );
-	}
-    }
 }
 
 void CartRing::timeStepRefine (const double refine) {
