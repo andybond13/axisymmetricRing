@@ -1238,39 +1238,43 @@ void CartRing::energBalance () {
 	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wkin, &_WkinT, 1, MPI::DOUBLE, MPI_SUM);
 
 
-    //Sum internal energies
-    double Wint = _WsprT + _Wcoh[0] + _Wcoh[1] + _WsprDT;
-    
-    //Determine maximum energy component
-    _Wmax = ( Wint > _WkinT ) ? Wint : _WkinT;
-    _Wmax = ( _Wmax > _WextT ) ? _Wmax : _WextT;
+	//Sum internal energies
+	double Wint = _WsprT + _Wcoh[0] + _Wcoh[1] + _WsprDT;
+		
+	//Determine maximum energy component
+	_Wmax = ( Wint > _WkinT ) ? Wint : _WkinT;
+	_Wmax = ( _Wmax > _WextT ) ? _Wmax : _WextT;
 
-    //Sum total energies
-    _Wsum = fabs(_WkinT + Wint - _WextT);
+	//Sum total energies
+	_Wsum = fabs(_WkinT + Wint - _WextT);
+	
+	if (_myid == 0) {
+		//Check to see if too much energy is generated - NOTIFICATION @ 1%
+		if ( _Wsum > 0.01 * _Wmax) {
+		std::cout << "t = " << _T << "  - Energy Balance Violation: " << _Wsum << " > " << _Wmax * 0.01 << std::endl;
+		FILE * pFile;
+			pFile = fopen ( _logPath.c_str(), "a" );
+			fprintf( pFile, "##    t = %12.3e  - Energy Balance Violation: %12.3e > %12.3e\n", _T, _Wsum, _Wmax * 0.01 );
+			fclose( pFile );
+		}
+	}
 
-    //Check to see if too much energy is generated - NOTIFICATION @ 1%
-    if ( _Wsum > 0.01 * _Wmax) {
-	std::cout << "t = " << _T << "  - Energy Balance Violation: " << _Wsum << " > " << _Wmax * 0.01 << std::endl;
-	FILE * pFile;
-    	pFile = fopen ( _logPath.c_str(), "a" );
-    	fprintf( pFile, "##    t = %12.3e  - Energy Balance Violation: %12.3e > %12.3e\n", _T, _Wsum, _Wmax * 0.01 );
-    	fclose( pFile );
-    }
-
-    //Check to see if too much energy is generated - CUT OFF @ 5%
-    if (_Wsum > 0.05 * _Wmax) {
-	FILE * pFile;
-    	pFile = fopen ( _logPath.c_str(), "a" );
-    	fprintf( pFile, "####    t = %12.3e  - Energy Generation Limit Exceeded (5%% Max) \n", _T );
-    	fclose( pFile );
-	std::cout << "-------------------------------------------------------" << std::endl;
-	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-	std::cout << "t = " << _T << "  - Energy Generation Limit Exceeded (5% Max): " << _Wsum << " > " 
-	    << _Wmax * 0.05 <<std::endl;
-	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-	std::cout << "-------------------------------------------------------" << std::endl;
-        _stopFlag = true;	//Politely terminates the program at the end of this solve loop
-    }
+	//Check to see if too much energy is generated - CUT OFF @ 5%
+	if (_Wsum > 0.05 * _Wmax) {
+		if (_myid == 0) {
+			FILE * pFile;
+			pFile = fopen ( _logPath.c_str(), "a" );
+			fprintf( pFile, "####    t = %12.3e  - Energy Generation Limit Exceeded (5%% Max) \n", _T );
+			fclose( pFile );
+			std::cout << "-------------------------------------------------------" << std::endl;
+			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+			std::cout << "t = " << _T << "  - Energy Generation Limit Exceeded (5% Max): " << _Wsum << " > " 
+				<< _Wmax * 0.05 <<std::endl;
+			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+			std::cout << "-------------------------------------------------------" << std::endl;
+		}
+		_stopFlag = true;	//Politely terminates the program at the end of this solve loop
+	}
     
 }
 
