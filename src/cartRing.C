@@ -1522,6 +1522,9 @@ void CartRing::timeStepRefine (const double refine) {
 	    }
 	}
 */
+
+	if (_myid == 0) {
+
 	double mult = 0.0;
 	if (_tFlag[1] == 2 && _tFlag[0] == 2) {
 	    _deactive = 0;
@@ -1607,16 +1610,16 @@ void CartRing::timeStepRefine (const double refine) {
 	    if (_deactive == 0) {
 		//Mult should be predefined.
 	    } else {
-		mult = 1 - (1 - refine) * _deactive;
-		_deactive = _deactive - 0.0002;
-		if (_deactive <= 0.0) {
-		    _deactive = 0.0;
-		    std::cout << "Gradual relaxing 1 --> 0 completed. t = " << _T << std::endl;
-    		    FILE * pFile;
-    		    pFile = fopen ( _logPath.c_str(), "a" );
-    		    fprintf( pFile, "##    Gradual relaxing 1 --> 0 completed. t =  %e\n", _T );
-    		    fclose( pFile );
-		}
+			mult = 1 - (1 - refine) * _deactive;
+			_deactive = _deactive - 0.0002;
+			if (_deactive <= 0.0) {
+				_deactive = 0.0;
+				std::cout << "Gradual relaxing 1 --> 0 completed. t = " << _T << std::endl;
+				FILE * pFile;
+				pFile = fopen ( _logPath.c_str(), "a" );
+				fprintf( pFile, "##    Gradual relaxing 1 --> 0 completed. t =  %e\n", _T );
+				fclose( pFile );
+			}
 	    }
 	} else {
 	    mult = refine * (1 - (1 - refine) * _deactive2);
@@ -1635,6 +1638,11 @@ void CartRing::timeStepRefine (const double refine) {
 	    std::cout << "Mult should have been defined by now" << std::endl;
 	}
 	_Dt = mult * _Dt;
+	}
+
+	MPI::COMM_WORLD.Bcast( &_Dt, 1, MPI::DOUBLE, 0);
+	MPI::COMM_WORLD.Bcast( &_deactive, 1, MPI::DOUBLE, 0);
+	MPI::COMM_WORLD.Bcast( &_deactive2, 1, MPI::DOUBLE, 0);
 
 	/*Time Step Refinement Summary:
 		CartRing::checkStable() evaluates the current position of all cohesive links
@@ -1666,6 +1674,7 @@ void CartRing::update () {
 
     // Nodal positions, Kinematics & External forces 
     for ( unsigned i = 0; i < _NodPos.size(); i++ ) {
+		if (!_local[i]) continue;
         for ( unsigned j = 0; j < 2; j++ ) {
             // Nodal positions
             _NodPos[i][j] += _Dis[i][2][j];
@@ -1679,7 +1688,7 @@ void CartRing::update () {
     }
 
     // Internal variables
-    for ( unsigned i = 0; i < _D.size(); i++ ) {
+    for ( unsigned i = _begin; i < _end; i++ ) {
         _D[i][0] = _D[i][1];
     }
 }
