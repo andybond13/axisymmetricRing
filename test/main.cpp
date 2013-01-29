@@ -26,7 +26,7 @@ int main () {
     double A   = 1.0e-6;   // in m^2
     double rho = 2.75e+3;  // in kg/m3
     double E   = 2.75e+11; // in Pa
-    int nx     = 8;
+    int nx     = 50;
 //    std::string path = "/home/ajs84/Software/cartRing/results";
 //    std::string path = "~/andrew/Duke/results";
 	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
@@ -89,7 +89,7 @@ int main () {
 	std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
 	std::vector<std::vector<double> >fragInvCDF;
 	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
-	if (runTime > 0) {	//should eliminate _myid >0
+	if (runTime > 0 && numFrag < 32767) {	//should eliminate _myid >0
 		std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
 	}
     return 0;
