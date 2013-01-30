@@ -1,5 +1,5 @@
 CPP       = mpic++
-CPP_FLAGS = -O3 -Wall -fPIC -m64
+CPP_FLAGS = -O3 -Wall -fPIC -m64 -g
 SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/
 #CTL       = $(SOFTWARE)/utils/ctl
