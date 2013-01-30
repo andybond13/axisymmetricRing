@@ -18,8 +18,8 @@ TEST      = ./test/
 
 
 # Classical compilation of the main
-main.exe: $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o
-	$(CPP) $(CPP_FLAGS) -o $(OBJMAIN)main.exe $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o
+main.exe: $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o $(OBJMAIN)ParallelCombiner.o
+	$(CPP) $(CPP_FLAGS) -o $(OBJMAIN)main.exe $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o $(OBJMAIN)ParallelCombiner.o
 
 $(OBJMAIN)main.o: $(TEST)main.cpp
 	$(CPP) $(CPP_FLAGS) -c $(INCS) $(TEST)main.cpp -o $(OBJMAIN)main.o
@@ -29,6 +29,9 @@ $(OBJMAIN)CartRing.o: $(SRC)cartRing.C
 
 $(OBJMAIN)MatPropGen.o: $(SRC)matPropGen.C
 	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)matPropGen.C -o $(OBJMAIN)MatPropGen.o
+
+$(OBJMAIN)ParallelCombiner.o: $(SRC)parallelCombiner.C
+	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)parallelCombiner.C -o $(OBJMAIN)ParallelCombiner.o
 
 
 # Compilation of the componant as a shared library and a remote executables
