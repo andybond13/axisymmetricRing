@@ -300,14 +300,21 @@ private:
     */
     void update ();
 
-    //! Use MPI to exchange the boundary nodes for calculating spring force
+    //! Use MPI to exchange the boundary nodes for calculating spring force and spring force
     /*!
         \brief Method to define the boundary nodes
-			   Method to exchange the boundary nodes for calculating spring force, using MPI
+			   Method to exchange the boundary nodes for calculating spring force and spring force, using MPI
     */
     void defineBoundaryNodes ();
     void exchangeBoundaryNodes ();
 	void exchangeSprForc ();
+
+    //! Use MPI to exchange the fragment number and location info
+    /*!
+        \brief Method to define the boundary nodes
+			   Method to xchange the fragment number and location info, using MPI
+    */
+	void exchangeFragInfo ();
 
     //!
     //!  M E T H O D S    T O    P R I N T    S T U F F
@@ -570,7 +577,7 @@ private:
     */
 	// 
     unsigned _numFrag;
-    std::vector<double> _fragLoc;
+    std::vector<int> _fragLoc;
     std::vector<double> _fragLength;
     double _DSum;
     double _fMean;

@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 //#include <str_ops.hpp>
 #include <time.h>
+//#include <valarray>
 using namespace std;
 using namespace MPI;
 
@@ -312,12 +313,14 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
     //Determine loading direction
     if ( velDir.compare( 0, 5, "RADIA") == 0 ) {
         for ( unsigned i = 0; i < _Vel.size(); i++ ) {
+			if (!_local[i]) continue;
             _Vel[i][0][0] = velVal * cosTheta(i);	//initialize velocity
             _Vel[i][0][1] = velVal * sinTheta(i);
         }
 	//_ValForcBC[0] = velVal;		//????? I do not know why this is here,
     } else if ( velDir.compare( 0, 5, "THETA") == 0 ) {
         for ( unsigned i = 0; i < _Vel.size(); i++ ) {
+			if (!_local[i]) continue;
             _Vel[i][0][0] = -1.0 * velVal * sinTheta(i);//initialize velocity
             _Vel[i][0][1] = velVal * cosTheta(i);
         }
@@ -325,8 +328,7 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
         std::cout << "Direction " << velDir << " unknown! " << std::endl; 
     }
      //count initial velocity as an initial external work/given energy
-    _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2) * (double)(_end-_begin)/(double)_Nx;
-
+    _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2) * (double)(_end-_begin+1)/(double)_Nx;
 }
 
 void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine ) {
@@ -358,7 +360,7 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 		_tFlag[0] = _tFlag[1];	//save current time-step flag
 		_tFlag[1] = 0;		//initialize new time-step flag
 		_stopFlag = false;	//initialize stop flag
-	
+
         // Explicit Newmark
         MPI::COMM_WORLD.Barrier(); NewmarkPred();
         	MPI::COMM_WORLD.Barrier(); NewmarkReso();
@@ -390,7 +392,7 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 		}
             }
         }
-	
+
 		//print stress vs. theta graphs
         if ( _Nt % _Nx == 0 ) {
 	    		printSTheta();
@@ -1047,7 +1049,7 @@ void CartRing::calcVelForc ( const unsigned i ) {
     //Mechanism for disabling loading ONLY at locations with full fragments (DISABLED)
     bool ok = true;	//assume loading ok
     for (unsigned j = 0; j < _fragLoc.size(); j++) {
-	if (_fragLoc[j] == i) {
+	if (_fragLoc[j] == (int)i) {
 	    ok = false;	//disable if fragment at this link
 	}
     }
@@ -1237,7 +1239,6 @@ void CartRing::energBalance () {
 	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_WsprD, &_WsprDT, 1, MPI::DOUBLE, MPI_SUM);
 	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wkin, &_WkinT, 1, MPI::DOUBLE, MPI_SUM);
 
-
 	//Sum internal energies
 	double Wint = _WsprT + _Wcoh[0] + _Wcoh[1] + _WsprDT;
 		
@@ -1282,7 +1283,7 @@ void CartRing::checkStable () {
 
     //Check to see if any cohesive link is in compression
     unsigned compression = 0;
-    for (unsigned i = _begin; i < _end; i++) {  
+    for (unsigned i = _begin; i <= _end; i++) {  
 	if (_sigCoh[i] < 0 ) {
 	    compression = 1;
 	    _tFlag[1] = 1;	//enable one level of time-step refinement
@@ -1292,7 +1293,7 @@ void CartRing::checkStable () {
     //Check to see if any link > 95% critical stress, or is within critical damage range
     //	meaning that its past the 95% mark and left of the scaled elastic modulus line
     unsigned temp = 0;
-    for (unsigned i = _begin; i < _end; i++ ){
+    for (unsigned i = _begin; i <= _end; i++ ){
 	 	if ( ( (_delta[i] > 0 ) && ( _D[i][1] < (_sigCoh[i]) / (_E/_Dx) )) || _sigCoh[i] > 0.95 * _SigC[i]) {
 			temp += 1; 		//count the number of links in this critical region
 		}
@@ -1315,7 +1316,8 @@ void CartRing::fragCount () {
     _fragLoc.resize(0);
     _numFrag = 0;
     _DSum = 0;
-    for (unsigned i = _begin; i < _end; i++ ){
+
+    for (unsigned i = _begin; i <= _end; i++ ){
 		//Sum the total amount of damage to all links (analogous to WcohD)
 		_DSum += (_D[i][1] >= 1) ? 1 : _D[i][1];
 
@@ -1326,17 +1328,7 @@ void CartRing::fragCount () {
 		}
     }
 
-	//exchange information
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_DSum, &_DSum, 1, MPI::DOUBLE, MPI_SUM);
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_numFrag, &_numFrag, 1, MPI::INT, MPI_SUM);				//TODO finish this
-/*vector<int> fragLoc (_numFrag);
-	MPI::COMM_WORLD.Allgatherv(&_fragLoc[0], _fragLoc.size(), MPI::INT, &fragLoc[0], fragLoc.size(), MPI::INT);
-
-	if (_myid == 0) {
-		cout << "numFrag = " << _numFrag << endl;
-//for (int i = 0; i < _numFrag; ++i) 		cout << "fragloc(" << i << ") = " << fragLoc[i] << endl;
-	}
-*/
+	exchangeFragInfo();
 
 	if (_myid == 0) {
 		//Find the length of each fragment
@@ -1358,8 +1350,6 @@ void CartRing::fragCount () {
 				_fragLength[k] = nElems * _Dx;
 			}
 		}
-
-		//MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_fragLength[0], &_fragLength[0], 1, MPI::INT, MPI_SUM);
 
 		//Initialize statistics of fragment length distribution
 		_fMean = 0;
@@ -1383,7 +1373,6 @@ void CartRing::fragCount () {
 				//If odd number, take middle value
 				_fMed = _fragLength[ (_numFrag - 1) / 2 ];
 			}
-
 			//Calculate Max, Min, Range
 			_fMax = _fragLength.back();
 			_fMin = _fragLength.front();
@@ -1688,7 +1677,7 @@ void CartRing::update () {
     }
 
     // Internal variables
-    for ( unsigned i = _begin; i < _end; i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         _D[i][0] = _D[i][1];
     }
 }
@@ -1817,7 +1806,7 @@ void CartRing::exchangeBoundaryNodes () {
 		if (_myid == _originList[i] /*&& _dirList[i] == 1*/) {
 			COMM_WORLD.Send(&_NodPos[_nodeList[i]][0], 2, MPI::DOUBLE, _destList[i], tag);
 			COMM_WORLD.Send(&_Dis[_nodeList[i]][1][0], 2, MPI::DOUBLE, _destList[i], tag+1);
-			cout << "disp: sent node " << _nodeList[i] << " from " << _originList[i] << " to " << _destList[i] << endl;
+			//cout << "disp: sent node " << _nodeList[i] << " from " << _originList[i] << " to " << _destList[i] << endl;
 		}
 	}
 
@@ -1845,7 +1834,7 @@ void CartRing::exchangeSprForc () {
 		int tag = i;
 		if (_myid == _destList[i] /*&& _dirList[i] == 1*/) {
 			COMM_WORLD.Send(&_Fspr[_nodeList[i]][0], 2, MPI::DOUBLE, _originList[i], tag);
-			cout << "force: sent node " << _nodeList[i] << " from " << _destList[i] << " to " << _originList[i] << endl;
+			//cout << "force: sent node " << _nodeList[i] << " from " << _destList[i] << " to " << _originList[i] << endl;
 		}
 	}
 
@@ -1864,6 +1853,41 @@ void CartRing::exchangeSprForc () {
 
 
 	return;
+}
+
+void CartRing::exchangeFragInfo() {
+
+    int locNumFrag = _fragLoc.size();
+
+    vector<int> numfrags(_numprocs);
+    MPI::COMM_WORLD.Allgather(&locNumFrag, 1, MPI::INT, &numfrags[0], 1, MPI::INT);
+
+    unsigned _numFrag = 0;
+    for (int i=0; i<_numprocs; i++) 
+        _numFrag += numfrags[i];
+
+    vector<int> outVector (_numFrag);
+    int displ[_numprocs]; 
+
+    if (_myid == 0) {
+        double sum = 0;
+        for (int i = 0; i < _numprocs; ++i) {
+            displ[i] = sum;
+            sum += numfrags[i];
+        }
+    }
+
+    MPI::COMM_WORLD.Gatherv(&_fragLoc[0], numfrags[_myid], MPI::INT, &outVector[0], &numfrags[0], &displ[0], MPI::INT,0);
+
+	MPI::COMM_WORLD.Barrier();
+	_fragLoc.resize(0); _fragLoc.resize(_numFrag);
+
+	if (_myid == 0) {
+		for (unsigned i = 0; i < _numFrag; ++i) 		_fragLoc[i] = outVector[i];
+	}
+	
+	MPI::COMM_WORLD.Bcast( &_fragLoc[0], _numFrag, MPI::INT, 0);
+
 }
 
 
@@ -2258,12 +2282,11 @@ void CartRing::printConnec () const {
 }
 
 void CartRing::printVtk ( const unsigned timStepNum ) const {
-	if (_myid > 0) return;
 
     // Build a name for the vtk file
     std::string resuPath = _path+"/vtkFiles/";			//../results
     unsigned zeroNum = 6 - (unsigned) floor( log10( timStepNum ) );
-    std::string baseName = "ring_";
+    std::string baseName = "ring_" + convertInt(_myid) + "_";
     for ( unsigned i = 0; i < zeroNum; i++ ) {
         baseName += "0";
     }
@@ -2292,20 +2315,21 @@ void CartRing::printMesh ( const std::string& vtkFile ) const {
     FILE * pFile;
     pFile = fopen( vtkFile.c_str(), "a" );
     unsigned nodSize = _NodPos.size();
-    fprintf ( pFile, "POINTS %d float\n", nodSize );
+    fprintf ( pFile, "POINTS %d float\n", (_end-_begin+1)*2  );
     for ( unsigned i = 0; i < nodSize; i++ ) {
+	if (!_local[i]) continue;
         double x = _NodPosOrig[i][0];			//NodPos
         double y = _NodPosOrig[i][1];
         fprintf ( pFile, " %12.3e %12.3e %12.3e\n", x, y, 0.0 );
     }
-    unsigned sprSize = _SprCon.size();
+    unsigned sprSize = _end-_begin+1;//_SprCon.size();
     fprintf ( pFile, "\nCELLS %d %d\n", sprSize, 3*sprSize );
-    for ( unsigned i = 0; i < sprSize; i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         fprintf ( pFile, " %12d %12d %12d\n", 2, _SprCon[i].first,
                   _SprCon[i].second );
     }
     fprintf ( pFile, "\nCELL_TYPES %d\n", sprSize );
-    for ( unsigned i = 0; i < sprSize; i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         fprintf ( pFile, " %12d\n", 3 );
     }
     fprintf ( pFile, "\n" );
@@ -2316,16 +2340,18 @@ void CartRing::printPointData ( const std::string& vtkFile ) const {
 
     FILE * pFile;
     pFile = fopen( vtkFile.c_str(), "a" );
-    int pointData = _NodPos.size();
-    fprintf ( pFile, "POINT_DATA %d", pointData );
+    //int pointData = _NodPos.size();
+    fprintf ( pFile, "POINT_DATA %d", (_end-_begin+1)*2 );
     fprintf ( pFile, "\nVECTORS displacements float\n" );
     for ( unsigned i = 0; i < _Dis.size(); i++ ) {
+		if (!_local[i]) continue;
         double dx = _NodPos[i][0]-_NodPosOrig[i][0];	//Dis[i][0][0]
         double dy = _NodPos[i][1]-_NodPosOrig[i][1];
         fprintf ( pFile, " %12.3e %12.3e %12.3e\n", dx, dy, 0.0 );
     }
     fprintf ( pFile, "\nVECTORS velocities float\n" );
     for ( unsigned i = 0; i < _Vel.size(); i++ ) {
+		if (!_local[i]) continue;
         double vx = _Vel[i][0][0];
         double vy = _Vel[i][0][1];
         fprintf ( pFile, " %12.3e %12.3e %12.3e\n", vx, vy, 0.0 );
@@ -2338,10 +2364,10 @@ void CartRing::printCellData ( const std::string& vtkFile ) const {
 
     FILE * pFile;
     pFile = fopen( vtkFile.c_str(), "a" );
-    fprintf( pFile, "CELL_DATA %d", _Nx );
+    fprintf( pFile, "CELL_DATA %d", (_end-_begin+1) );
     fprintf( pFile, "\nSCALARS stress float\n" );
     fprintf( pFile, "LOOKUP_TABLE default\n" );
-    for ( unsigned i = 0; i < _Stress.size(); i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         fprintf( pFile, " %12.3e\n", _Stress[i] );
     }
     fprintf( pFile, "\n" );
@@ -2451,7 +2477,7 @@ void CartRing::printFrags () const {
 	}
 	if (_numFrag <= 10){
 	    for (unsigned i = 0; i < _fragLoc.size(); i++){
-		fprintf( pFile, "%12.3f", _fragLoc[i] );
+		fprintf( pFile, "%12u", _fragLoc[i] );
 	    }
 	}
         fprintf( pFile, "\n" );
