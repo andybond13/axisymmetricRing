@@ -2311,17 +2311,21 @@ void CartRing::printHeader ( const std::string& vtkFile ) const {
 }
 
 void CartRing::printMesh ( const std::string& vtkFile ) const {
+	int var = 0;
+	if (_myid == 0) var = 1;
+	if (_myid == _numprocs-1) var = -1;
 
     FILE * pFile;
     pFile = fopen( vtkFile.c_str(), "a" );
     unsigned nodSize = _NodPos.size();
-    fprintf ( pFile, "POINTS %d float\n", (_end-_begin+1)*2  );
-    for ( unsigned i = 0; i < nodSize; i++ ) {
-	if (!_local[i]) continue;
+    fprintf ( pFile, "POINTS %d float\n", (_end-_begin+1)*2+var  );
+    for ( unsigned i = 1; i < nodSize; i++ ) {
+		if (!_local[i]) continue;
         double x = _NodPosOrig[i][0];			//NodPos
         double y = _NodPosOrig[i][1];
         fprintf ( pFile, " %12.3e %12.3e %12.3e\n", x, y, 0.0 );
     }
+    if (_local[0]) fprintf ( pFile, " %12.3e %12.3e %12.3e\n", _NodPosOrig[0][0], _NodPosOrig[0][1], 0.0 );
     unsigned sprSize = _end-_begin+1;//_SprCon.size();
     fprintf ( pFile, "\nCELLS %d %d\n", sprSize, 3*sprSize );
     for ( unsigned i = _begin; i <= _end; i++ ) {
@@ -2337,25 +2341,30 @@ void CartRing::printMesh ( const std::string& vtkFile ) const {
 }
 
 void CartRing::printPointData ( const std::string& vtkFile ) const {
+	int var = 0;
+	if (_myid == 0) var = 1;
+	if (_myid == _numprocs-1) var = -1;
 
     FILE * pFile;
     pFile = fopen( vtkFile.c_str(), "a" );
     //int pointData = _NodPos.size();
-    fprintf ( pFile, "POINT_DATA %d", (_end-_begin+1)*2 );
+    fprintf ( pFile, "POINT_DATA %d", (_end-_begin+1)*2 +var);
     fprintf ( pFile, "\nVECTORS displacements float\n" );
-    for ( unsigned i = 0; i < _Dis.size(); i++ ) {
+    for ( unsigned i = 1; i < _Dis.size(); i++ ) {
 		if (!_local[i]) continue;
         double dx = _NodPos[i][0]-_NodPosOrig[i][0];	//Dis[i][0][0]
         double dy = _NodPos[i][1]-_NodPosOrig[i][1];
         fprintf ( pFile, " %12.3e %12.3e %12.3e\n", dx, dy, 0.0 );
     }
+    if (_local[0]) fprintf ( pFile, " %12.3e %12.3e %12.3e\n", _NodPos[0][0]-_NodPosOrig[0][0], _NodPos[0][1]-_NodPosOrig[0][1], 0.0 );
     fprintf ( pFile, "\nVECTORS velocities float\n" );
-    for ( unsigned i = 0; i < _Vel.size(); i++ ) {
+    for ( unsigned i = 1; i < _Vel.size(); i++ ) {
 		if (!_local[i]) continue;
         double vx = _Vel[i][0][0];
         double vy = _Vel[i][0][1];
         fprintf ( pFile, " %12.3e %12.3e %12.3e\n", vx, vy, 0.0 );
     }
+    if (_local[0]) fprintf ( pFile, " %12.3e %12.3e %12.3e\n", _Vel[0][0][0], _Vel[0][0][1], 0.0 );
     fprintf ( pFile, "\n" );
     fclose( pFile );
 }
