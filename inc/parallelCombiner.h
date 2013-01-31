@@ -49,6 +49,7 @@ private:
 
 	void findSets(std::string inPath);
 	void combineSet(std::vector<std::string> inSet);
+	bool stringsMatch(std::string in1, std::string in2);
 
 };
 

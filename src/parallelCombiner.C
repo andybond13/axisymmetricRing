@@ -41,8 +41,19 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath) {
 	findSets(vtkPath);
 
 	//combine sets
-	std::vector<std::string> inSet;
-	combineSet(inSet);
+	for (unsigned i = 0; i < _fileSet.size(); ++i) {
+		combineSet(_fileSet[i]);
+
+		//remove unnecessary files
+		for (unsigned j = 1; j < _fileSet[i].size(); ++j) {
+//			cout << "got here-j" << endl;
+			string in2 = _fileSet[i][j];
+//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+			remove(in2);
+//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+//			cout << endl;
+		}
+	}
 
 }
 
@@ -73,25 +84,77 @@ void ParallelCombiner::findSets(string inPath) {
 	}
 
 	//sort into sets
-	vector<vector<string> > _fileSet(0);
-	for (unsigned i = 0; i < allFiles.size(); ++i) {
+	_fileSet.resize(0);
+	for (unsigned i = 0; i < allFiles.size()-1; ++i) {
+		if (i >= allFiles.size()) return;
 		vector<string> files(0);
 		files.push_back(allFiles[i]);
-		for (unsigned i = 0; i < allFiles.size(); ++i) {
-			
-	
+		for (unsigned j = i+1; j < allFiles.size(); ++j) {
+			if (stringsMatch(allFiles[i],allFiles[j])) {
+				files.push_back(allFiles[j]);
+				allFiles.erase(allFiles.begin()+j);
+				j--;
+			}	
 		}
 
-		if (files.size() >= 2) _fileSet.push_back(files);
+		if (files.size() >= 2) {
+			_fileSet.push_back(files);
+			allFiles.erase(allFiles.begin()+i);
+			i--;
+		}
 	}
 	
+	//check pairings
+	cout << "_fileSet.size() = " << _fileSet.size() << endl;
+	for (unsigned i = 0; i < _fileSet.size(); ++i){
+		cout << endl;
+		for (unsigned j = 0; j < _fileSet[i].size(); ++j){
+			cout << _fileSet[i][j] << endl;
+		}
+	}
+
+	return;
+}
+
+void ParallelCombiner::combineSet(std::vector<std::string> inSet) {
 
 
 	return;
 }
 
-void ParallelCombiner::combineSet(std::vector<std::string> inSet) {}
+bool ParallelCombiner::stringsMatch(std::string in1, std::string in2) {
 
+	//make sure both start with ring and then delete it
+	unsigned find1 = in1.find("ring_");
+	if (find1 < in1.length()) in1.erase(in1.begin(),in1.begin()+find1+5);
+	else return false;
+	unsigned find2 = in2.find("ring_");
+	if (find2 < in2.length()) in2.erase(in2.begin(),in2.begin()+find2+5);
+	else return false;
 
+	//make sure both end with /vtk and then delete it
+	find1 = in1.find(".vtk");
+	if (find1 < in1.length()) in1.erase(in1.end()-4,in1.end());
+	else return false;
+	find2 = in2.find(".vtk");
+	if (find2 < in2.length()) in2.erase(in2.end()-4,in2.end());
+	else return false;
+	
+	//delete processor number
+	find1 = in1.find("_");
+	if (find1 < in1.length()) in1.erase(in1.begin(),in1.begin()+find1+1);
+	else return false;
+	find2 = in2.find("_");
+	if (find2 < in2.length()) in2.erase(in2.begin(),in2.begin()+find2+1);
+	else return false;
+
+	if (in1==in2) {
+		cout << in1 << endl;
+		cout << in2 << endl;
+		return true;
+	}
+
+	return false;
+}
 
 
