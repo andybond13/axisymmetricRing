@@ -41,7 +41,7 @@ public:
         \param cohPar : cohesive law parameter list, either sigma or delta
     */
 
-	void run(const int procs, const std::string resultsPath);
+	void run(const int procs, const std::string resultsPath, bool deleteFlag);
 
 private:
 

@@ -13,6 +13,7 @@
 *******************************************************************************/
 #include "parallelCombiner.h"
 #include <iostream>
+#include <fstream>
 #include <boost/filesystem.hpp>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +34,7 @@ ParallelCombiner::ParallelCombiner ()  {}
 
 ParallelCombiner::~ParallelCombiner ()  {}
 
-void ParallelCombiner::run(const int procs, const std::string resultsPath) {
+void ParallelCombiner::run(const int procs, const std::string resultsPath, bool deleteFlag) {
 
 	string vtkPath = resultsPath + "/vtkFiles/";
 
@@ -45,13 +46,15 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath) {
 		combineSet(_fileSet[i]);
 
 		//remove unnecessary files
-		for (unsigned j = 1; j < _fileSet[i].size(); ++j) {
-//			cout << "got here-j" << endl;
-			string in2 = _fileSet[i][j];
-//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
-			remove(in2);
-//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
-//			cout << endl;
+		if (deleteFlag) {
+			for (unsigned j = 1; j < _fileSet[i].size(); ++j) {
+	//			cout << "got here-j" << endl;
+				string in2 = _fileSet[i][j];
+	//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+				remove(in2);
+	//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+	//			cout << endl;
+			}
 		}
 	}
 
@@ -117,7 +120,32 @@ void ParallelCombiner::findSets(string inPath) {
 }
 
 void ParallelCombiner::combineSet(std::vector<std::string> inSet) {
+	
+	//TODO - fill this in
 
+	//open all files in set
+	assert(exists(inSet[0]));
+	ofstream mainFile;
+	mainFile.open (inSet[0].c_str(), ios::app);
+	mainFile << "Writing this to a file.\n";
+	mainFile.close();
+
+	FILE * files[inSet.size()-1];
+	for(unsigned i = 0; i < inSet.size()-1; i++) {
+		assert(exists(inSet[i+1]));
+		string filename = inSet[i+1];
+		printf("%s domain%03d \n", filename.c_str(), i);
+		files[i] = fopen(filename.c_str(), "r");
+		fclose(files[i]);
+	}
+
+	
+
+	//0: find end of points dataset
+	//other: find beginning and end of points data set
+	//copy in sequentially
+	//repeat for cells,displacement,velocity,stress
+	//add together numbers
 
 	return;
 }
