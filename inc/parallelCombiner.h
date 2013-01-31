@@ -41,10 +41,14 @@ public:
         \param cohPar : cohesive law parameter list, either sigma or delta
     */
 
-	void run(const int procs, const std::string vtkPath);
+	void run(const int procs, const std::string resultsPath);
 
 private:
 
+	std::vector<std::vector<std::string> > _fileSet;
+
+	void findSets(std::string inPath);
+	void combineSet(std::vector<std::string> inSet);
 
 };
 
