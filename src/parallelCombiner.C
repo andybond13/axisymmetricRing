@@ -34,7 +34,11 @@ ParallelCombiner::ParallelCombiner ()  {}
 
 ParallelCombiner::~ParallelCombiner ()  {}
 
-void ParallelCombiner::run(const int procs, const std::string resultsPath, bool deleteFlag) {
+void ParallelCombiner::run(const int procs, const std::string resultsPath, int Nx, bool deleteFlag) {
+
+	/*
+	 CURRENTLY COMBINES VTK FILES ONLY!!!	
+	*/
 
 	string vtkPath = resultsPath + "/vtkFiles/";
 
@@ -43,12 +47,11 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath, bool 
 
 	//combine sets
 	for (unsigned i = 0; i < _fileSet.size(); ++i) {
-		combineSet(_fileSet[i]);
+		combineSet(_fileSet[i], Nx);
 
 		//remove unnecessary files
-		if (deleteFlag) {
-			for (unsigned j = 1; j < _fileSet[i].size(); ++j) {
-	//			cout << "got here-j" << endl;
+		if (deleteFlag) {												
+			for (unsigned j = 0; j < _fileSet[i].size(); ++j) {
 				string in2 = _fileSet[i][j];
 	//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
 				remove(in2);
@@ -58,6 +61,8 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath, bool 
 		}
 	}
 
+	cout << "*** files combined" << endl;
+	return;
 }
 
 /*------------------------------ P R I V A T E -------------------------------*/
@@ -70,20 +75,13 @@ void ParallelCombiner::findSets(string inPath) {
 	//get file listing
 	if (is_directory(p)) {
 		for (directory_iterator itr(p); itr!=directory_iterator(); ++itr) {
-			cout << itr->path().filename() << " "; // display filename only
+//			cout << itr->path().filename() << " "; // display filename only
 			if (is_regular_file(itr->status())) {
-				cout << " [" << file_size(itr->path()) << "]";
 				allFiles.push_back(itr->path().string());
 			}
-			cout << endl;
 		}
 	} else {
-		cout << (exists(p) ? "Found: " : "Not found: ") << p << endl;
-	}
-
-	//check file listing
-	for (unsigned i = 0; i < allFiles.size(); ++i) {
-		cout << allFiles[i] << endl;
+		//cout << (exists(p) ? "Found: " : "Not found: ") << p << endl;
 	}
 
 	//sort into sets
@@ -107,45 +105,221 @@ void ParallelCombiner::findSets(string inPath) {
 		}
 	}
 	
-	//check pairings
-	cout << "_fileSet.size() = " << _fileSet.size() << endl;
-	for (unsigned i = 0; i < _fileSet.size(); ++i){
-		cout << endl;
-		for (unsigned j = 0; j < _fileSet[i].size(); ++j){
-			cout << _fileSet[i][j] << endl;
-		}
-	}
-
 	return;
 }
 
-void ParallelCombiner::combineSet(std::vector<std::string> inSet) {
+void ParallelCombiner::combineSet(std::vector<std::string> inSet, int nx) {
 	
-	//TODO - fill this in
-
-	//open all files in set
-	assert(exists(inSet[0]));
-	ofstream mainFile;
-	mainFile.open (inSet[0].c_str(), ios::app);
-	mainFile << "Writing this to a file.\n";
-	mainFile.close();
-
-	FILE * files[inSet.size()-1];
-	for(unsigned i = 0; i < inSet.size()-1; i++) {
-		assert(exists(inSet[i+1]));
-		string filename = inSet[i+1];
-		printf("%s domain%03d \n", filename.c_str(), i);
-		files[i] = fopen(filename.c_str(), "r");
-		fclose(files[i]);
-	}
-
-	
-
 	//0: find end of points dataset
 	//other: find beginning and end of points data set
 	//copy in sequentially
 	//repeat for cells,displacement,velocity,stress
 	//add together numbers
+
+
+	//open target file
+	assert(exists(inSet[0]));
+	ofstream outFile;
+	string outFileName = inSet[0].substr(0,inSet[0].length()-4) + "_multi.vtk";
+	outFile.open(outFileName.c_str());	
+
+	//open all files in set
+	string line;
+	string oldLine;
+	int linecount = 0;
+	std::ifstream files[inSet.size()];
+	for(unsigned i = 0; i < inSet.size(); i++) {
+		assert(exists(inSet[i]));
+		string filename = inSet[i];
+		files[i].open(filename.c_str());
+	}
+	
+	//***find POINTS, write them to outFile
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			unsigned found = line.find("POINTS");
+			if (found == 0) {
+				if (i == 0) outFile << "POINTS " << 2*nx << " float" << endl;
+				break;
+			}
+			if (i == 0) outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+	}	
+	while ( getline( files[inSet.size()-1] , line ) ) {
+			if (line.length() == 0) {
+				outFile << oldLine << endl;
+				break;
+			}
+			oldLine = line;
+	}
+	files[inSet.size()-1].close();
+	files[inSet.size()-1].open(inSet[inSet.size()-1].c_str());
+	while ( getline( files[inSet.size()-1] , line ) ) {
+		unsigned found = line.find("POINTS");
+		if (found == 0) {
+			break;
+		}
+	}
+	oldLine = "";
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			if (line.length() == 0) break;
+			if (i == inSet.size()-1) outFile << oldLine;
+			else outFile << line << '\n';
+			if (i == 0) linecount++ ;
+			if (i == inSet.size()-1) oldLine = line+'\n';
+		}
+	}
+	outFile << endl;
+
+	//find CELLS, write them to outFile
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			unsigned found = line.find("CELLS");
+			if (found == 0) {
+				if (i == 0) outFile << "CELLS " << nx << " " << 3*nx << endl;
+				break;
+			}
+			if (i == 0) outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+		while ( getline( files[i] , line ) ) {
+			if (line.length() == 0) break;
+			outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+	}
+	outFile << endl;
+
+	//find CELL_TYPES, write them to outFile
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			unsigned found = line.find("CELL_TYPES");
+			if (found == 0) {
+				if (i == 0) outFile << "CELL_TYPES " << nx << endl;
+				break;
+			}
+			if (i == 0) outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+		while ( getline( files[i] , line ) ) {
+			if (line.length() == 0) break;
+			outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+	}
+	outFile << endl;
+
+	//***find POINT_DATA, write them to outFile
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			unsigned found = line.find("POINT_DATA");
+			if (found == 0) {
+				if (i == 0) outFile << "POINT_DATA " << 2*nx << endl;
+				if (i == 0) outFile << "VECTORS displacements float" << endl;
+				getline( files[i] , line );
+				break;
+			}
+			if (i == 0) outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+	}
+	while ( getline( files[inSet.size()-1] , line ) ) {
+			if (line.length() == 0) {
+				outFile << oldLine << endl;
+				break;
+			}
+			oldLine = line;
+	}
+	files[inSet.size()-1].close();
+	files[inSet.size()-1].open(inSet[inSet.size()-1].c_str());
+	while ( getline( files[inSet.size()-1] , line ) ) {
+		unsigned found = line.find("VECTORS displacements float");
+		if (found == 0) {
+			break;
+		}
+	}
+	oldLine = "";
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			if (line.length() == 0) break;
+			if (i == inSet.size()-1) outFile << oldLine;
+			else outFile << line << '\n';
+			if (i == 0) linecount++ ;
+			if (i == inSet.size()-1) oldLine = line+'\n';
+		}
+	}
+	outFile << endl;
+
+	//***find VECTORS velocities float, write them to outFile
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			unsigned found = line.find("VECTORS velocities float");
+			if (found == 0) {
+				if (i == 0) outFile << "VECTORS velocities float" <<  endl;
+				break;
+			}
+			if (i == 0) outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+	}
+	while ( getline( files[inSet.size()-1] , line ) ) {
+			if (line.length() == 0) {
+				outFile << oldLine << endl;
+				break;
+			}
+			oldLine = line;
+	}
+	files[inSet.size()-1].close();
+	files[inSet.size()-1].open(inSet[inSet.size()-1].c_str());
+	while ( getline( files[inSet.size()-1] , line ) ) {
+		unsigned found = line.find("VECTORS velocities float");
+		if (found == 0) {
+			break;
+		}
+	}
+	oldLine = "";
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			if (line.length() == 0) break;
+			if (i == inSet.size()-1) outFile << oldLine;
+			else outFile << line << '\n';
+			if (i == 0) linecount++ ;
+			if (i == inSet.size()-1) oldLine = line+'\n';
+		}
+	}
+	outFile << endl;
+
+	//find CELL_DATA velocities float, write them to outFile
+	for (unsigned i = 0; i < inSet.size(); ++i) {
+		while ( getline( files[i] , line ) ) {
+			unsigned found = line.find("CELL_DATA");
+			if (found == 0) {
+				if (i == 0) outFile << "CELL_DATA " << nx << endl;
+				if (i == 0) outFile << "SCALARS stress float" << endl;
+				if (i == 0) outFile << "LOOKUP_TABLE default" << endl;
+				getline( files[i] , line );
+				getline( files[i] , line );
+				break;
+			}
+			if (i == 0) outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+		while ( getline( files[i] , line ) ) {
+			if (line.length() == 0) break;
+			outFile << line << endl;
+			if (i == 0) linecount++ ;
+		}
+	}
+	outFile << endl;
+
+
+	for(unsigned i = 0; i < inSet.size(); i++) {
+		files[i].close();
+	}
+
+	outFile.close();
 
 	return;
 }
@@ -176,11 +350,7 @@ bool ParallelCombiner::stringsMatch(std::string in1, std::string in2) {
 	if (find2 < in2.length()) in2.erase(in2.begin(),in2.begin()+find2+1);
 	else return false;
 
-	if (in1==in2) {
-		cout << in1 << endl;
-		cout << in2 << endl;
-		return true;
-	}
+	if (in1==in2) return true;
 
 	return false;
 }

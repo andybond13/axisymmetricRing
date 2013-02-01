@@ -92,7 +92,7 @@ int main () {
 	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
 	if (runTime > 0 && numFrag < 32767 && nIter>0) {	//should eliminate _myid >0
 		std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
-		ParallelCombiner pc; pc.run(1,path,true);
+		ParallelCombiner pc; pc.run(1,path,nx,true);
 	}
     return 0;
 }
