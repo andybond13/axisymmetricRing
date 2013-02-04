@@ -920,7 +920,7 @@ double CartRing::sprForc ( const unsigned sprNum ) {
     _Fspr[_SprCon[sprNum].first ][0] =        axiForc * elmVec[0] / elmLength;
     _Fspr[_SprCon[sprNum].first ][1] =        axiForc * elmVec[1] / elmLength;
     _Fspr[_SprCon[sprNum].second][0] = -1.0 * axiForc * elmVec[0] / elmLength;
-
+    _Fspr[_SprCon[sprNum].second][1] = -1.0 * axiForc * elmVec[1] / elmLength;
     // Compute the element strain
     double strain = ( pow( elmLength, 2 ) - pow( _Dx, 2 ) )
                   / ( _Dx * ( elmLength + _Dx ) );
