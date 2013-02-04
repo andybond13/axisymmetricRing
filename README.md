@@ -1,13 +1,12 @@
 Notes:
 
 todo:
--continue parallelizing list (starting at checkstable)
--collect & add up energies in newmark routines
--compile all results at end?? or at end of each time-step?
+-solve difference between np1 & np4
+-compile all results; parallelize graphs/datafiles
 
 
 future improvements:
--parallelize (by domain)
+-add unit tests for np1 vs np4
 -consider using boost vectors to simplify code (you can do operations on them)
 -use true stress (find area via inclusion of poisson's ratio)
 -explore log-strain
