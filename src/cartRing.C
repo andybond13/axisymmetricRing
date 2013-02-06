@@ -818,9 +818,9 @@ void CartRing::NewmarkReso () {
 		_dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
 		_dWcoh[1] = _Wcoh[0];
 	}
-	MPI::COMM_WORLD.Barrier(); MPI::COMM_WORLD.Bcast( &_Wcoh100[0], 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Barrier(); MPI::COMM_WORLD.Bcast( &_dWcoh[1], 2, MPI::INT, 0);
-
+	MPI::COMM_WORLD.Barrier();
+	MPI::COMM_WORLD.Bcast( &_Wcoh100[0], 1, MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast( &_dWcoh[1], 2, MPI::INT, 0);
 
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
@@ -859,6 +859,8 @@ void CartRing::NewmarkReso () {
 			}
 		}
 	}
+
+	MPI::COMM_WORLD.Bcast( &_stopFlag, 1, MPI::BOOL, 0);
 
     //Adjust for constant  strain rate --calculate _VelForcReq needed to maintain const SR
     if ( _ConstSRFlag == 1 ) {
@@ -1234,10 +1236,12 @@ void CartRing::energBalance () {
 	double _WsprT;
 	double _WsprDT;
 	double _WkinT;
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wext, &_WextT, 1, MPI::DOUBLE, MPI_SUM);
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wspr, &_WsprT, 1, MPI::DOUBLE, MPI_SUM);
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_WsprD, &_WsprDT, 1, MPI::DOUBLE, MPI_SUM);
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wkin, &_WkinT, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier(); 
+	COMM_WORLD.Allreduce ( &_Wext, &_WextT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_Wspr, &_WsprT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_WsprD, &_WsprDT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_Wkin, &_WkinT, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier();
 
 	//Sum internal energies
 	double Wint = _WsprT + _Wcoh[0] + _Wcoh[1] + _WsprDT;
@@ -1276,6 +1280,8 @@ void CartRing::energBalance () {
 		}
 		_stopFlag = true;	//Politely terminates the program at the end of this solve loop
 	}
+
+	MPI::COMM_WORLD.Bcast( &_stopFlag, 1, MPI::BOOL, 0);
     
 }
 
