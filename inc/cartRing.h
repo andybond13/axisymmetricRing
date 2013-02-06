@@ -593,6 +593,7 @@ private:
     /*!
         \brief _Wkin : Total kinematic energy 
                _Wext : Total external energy 
+               _WextT: Total external energy, global
                _Wspr : Total spring energy
                _Wcoh : _Wcoh[0] = Total dissipated energy
                        _Wcoh[1] = Total elastic energy
@@ -604,6 +605,7 @@ private:
     */
     double _Wkin;
     double _Wext;
+    double _WextT;
     double _Wspr;
     std::vector<double> _Wcoh;
     double _Wsum;

@@ -1036,7 +1036,7 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
         // Compute cohesive energy
         wCoh[0] = 0.5 * _A * _SigC[cohNum] * _D[cohNum][1] * _DelC[cohNum];
         wCoh[1] = 0.5 * _A * _sigCoh[cohNum] * _delta[cohNum];
-    }//MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wext, &_Wext, 1, MPI::DOUBLE, MPI_SUM);
+    }
     return wCoh;
 }
 
@@ -1232,8 +1232,9 @@ void CartRing::cohStr ( const unsigned cohNum ) {
 
 void CartRing::energBalance () {
 
+	_WextT = 0;
 	MPI::COMM_WORLD.Barrier(); 
-	COMM_WORLD.Allreduce ( &_Wext, &_Wext, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_Wext, &_WextT, 1, MPI::DOUBLE, MPI_SUM);
 	COMM_WORLD.Allreduce ( &_Wspr, &_Wspr, 1, MPI::DOUBLE, MPI_SUM);
 	COMM_WORLD.Allreduce ( &_WsprD, &_WsprD, 1, MPI::DOUBLE, MPI_SUM);
 	COMM_WORLD.Allreduce ( &_Wkin, &_Wkin, 1, MPI::DOUBLE, MPI_SUM);
@@ -1244,10 +1245,10 @@ void CartRing::energBalance () {
 		
 	//Determine maximum energy component
 	_Wmax = ( Wint > _Wkin ) ? Wint : _Wkin;
-	_Wmax = ( _Wmax > _Wext ) ? _Wmax : _Wext;
+	_Wmax = ( _Wmax > _WextT ) ? _Wmax : _WextT;
 
 	//Sum total energies
-	_Wsum = fabs(_Wkin + Wint - _Wext);
+	_Wsum = fabs(_Wkin + Wint - _WextT);
 	
 	if (_myid == 0) {
 		//Check to see if too much energy is generated - NOTIFICATION @ 1%
@@ -2432,7 +2433,7 @@ void CartRing::printGlobalInfo () const {
         fprintf( pFile, "%12.3e", _Wspr );
         fprintf( pFile, "%12.3e", _Wcoh[0] );
         fprintf( pFile, "%12.3e", _Wcoh[1] );
-        fprintf( pFile, "%12.3e", _Wext );
+        fprintf( pFile, "%12.3e", _WextT );
         fprintf( pFile, "%12.3e", _Wkin );
 	fprintf( pFile, "%12.3e", _Wmax * 0.01 );
 	fprintf( pFile, "%12.3e", _Wsum );
