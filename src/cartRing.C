@@ -1232,26 +1232,26 @@ void CartRing::cohStr ( const unsigned cohNum ) {
 
 void CartRing::energBalance () {
 
-	double _WextT;
-	double _WsprT;
-	double _WsprDT;
-	double _WkinT;
+	double WextT;
+	double WsprT;
+	double WsprDT;
+	double WkinT;
 	MPI::COMM_WORLD.Barrier(); 
-	COMM_WORLD.Allreduce ( &_Wext, &_WextT, 1, MPI::DOUBLE, MPI_SUM);
-	COMM_WORLD.Allreduce ( &_Wspr, &_WsprT, 1, MPI::DOUBLE, MPI_SUM);
-	COMM_WORLD.Allreduce ( &_WsprD, &_WsprDT, 1, MPI::DOUBLE, MPI_SUM);
-	COMM_WORLD.Allreduce ( &_Wkin, &_WkinT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_Wext, &WextT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_Wspr, &WsprT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_WsprD, &WsprDT, 1, MPI::DOUBLE, MPI_SUM);
+	COMM_WORLD.Allreduce ( &_Wkin, &WkinT, 1, MPI::DOUBLE, MPI_SUM);
 	MPI::COMM_WORLD.Barrier();
 
 	//Sum internal energies
-	double Wint = _WsprT + _Wcoh[0] + _Wcoh[1] + _WsprDT;
+	double Wint = WsprT + _Wcoh[0] + _Wcoh[1] + WsprDT;
 		
 	//Determine maximum energy component
-	_Wmax = ( Wint > _WkinT ) ? Wint : _WkinT;
-	_Wmax = ( _Wmax > _WextT ) ? _Wmax : _WextT;
+	_Wmax = ( Wint > WkinT ) ? Wint : WkinT;
+	_Wmax = ( _Wmax > WextT ) ? _Wmax : WextT;
 
 	//Sum total energies
-	_Wsum = fabs(_WkinT + Wint - _WextT);
+	_Wsum = fabs(WkinT + Wint - WextT);
 	
 	if (_myid == 0) {
 		//Check to see if too much energy is generated - NOTIFICATION @ 1%
