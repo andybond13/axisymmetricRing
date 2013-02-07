@@ -264,7 +264,7 @@ void CartRing::setCohLaw ( const std::string& lawTyp,
     _D.resize( _Nx );
     _delta.resize( _Nx );
     _sigCoh.resize( _Nx );
-    for ( unsigned i = 0; i < _Nx; i++ ) {
+    for ( unsigned i = _begin; i <= _end; i++ ) {
         _D[i].resize(2);
     }
 }
