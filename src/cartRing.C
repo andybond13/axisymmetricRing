@@ -840,6 +840,15 @@ void CartRing::NewmarkReso () {
 		} else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
 			_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
 		} else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
+			FILE * pFile;
+			pFile = fopen ( _logPath.c_str(), "a" );
+			fprintf( pFile, "####    t = %12.3e  - Plastic Cohesive Energy has plateaued, no further fragmentation expected\n", _T );
+			fclose( pFile );
+			std::cout << "-------------------------------------------------------" << std::endl;
+			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+			std::cout << "t = " << _T << "  - Plastic Cohesive Energy has plateaued, no further fragmentation expected" << std::endl;
+			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+			std::cout << "-------------------------------------------------------" << std::endl;
 			_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
 		}
 
