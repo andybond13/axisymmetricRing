@@ -379,20 +379,18 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 		MPI::COMM_WORLD.Barrier();
         update();
 		MPI::COMM_WORLD.Barrier();
-
         // Print stuff
         if ( _DisplayFlag ) {
-	    if (_numFrag >= 1) {
-                if ( _Nt % _DtPrintFrac == 0 ) {	//Use fracture print frequency
-                    printVtk( _Nt );
-		}
-	    } else {
-                if ( _Nt % _DtPrintElas == 0 ) {	//Use elastic print frequency
-                    printVtk( _Nt );
-		}
+			if (_numFrag >= 1) {
+		    		if ( _Nt % _DtPrintFrac == 0 ) {	//Use fracture print frequency
+		                printVtk( _Nt );
+				}
+			} else {
+		    	    if ( _Nt % _DtPrintElas == 0 ) {	//Use elastic print frequency
+		     	   printVtk( _Nt );
+				}
             }
         }
-
 		//print stress vs. theta graphs
         if ( _Nt % _Nx == 0 ) {
 	    		printSTheta();
@@ -1865,7 +1863,7 @@ void CartRing::exchangeFragInfo() {
     vector<int> numfrags(_numprocs);
     MPI::COMM_WORLD.Allgather(&locNumFrag, 1, MPI::INT, &numfrags[0], 1, MPI::INT);
 
-    unsigned _numFrag = 0;
+    _numFrag = 0;
     for (int i=0; i<_numprocs; i++) 
         _numFrag += numfrags[i];
 
@@ -1888,9 +1886,11 @@ void CartRing::exchangeFragInfo() {
 	if (_myid == 0) {
 		for (unsigned i = 0; i < _numFrag; ++i) 		_fragLoc[i] = outVector[i];
 	}
-	
-	MPI::COMM_WORLD.Bcast( &_fragLoc[0], _numFrag, MPI::INT, 0);
 
+	MPI::COMM_WORLD.Bcast( &_fragLoc[0], _numFrag, MPI::INT, 0);
+	MPI::COMM_WORLD.Allreduce ( &_DSum, &_DSum, 1, MPI::DOUBLE, MPI_SUM);
+
+	return;
 }
 
 
