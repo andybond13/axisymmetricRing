@@ -2424,8 +2424,8 @@ void CartRing::printNodalInfo () const {
         FILE * pFile;
 
         for ( unsigned i = 0; i < _NodesToPlot.size(); i++ ) {
-			if (!_local[i]) continue;
             unsigned nodNum = _NodesToPlot[i];
+			if (!_local[nodNum]) continue;
             double v_r = cosTheta( nodNum ) * _Vel[nodNum][0][0]
                        + sinTheta( nodNum ) * _Vel[nodNum][0][1];
             double v_t = cosTheta( nodNum ) * _Vel[nodNum][0][1]
@@ -2447,8 +2447,8 @@ void CartRing::printElmInfo () const {
         FILE * pFile;
 
         for ( unsigned i = 0; i < _ElmsToPlot.size(); i++ ) {
-			if (i < _begin || i > _end) continue;
             unsigned elmNum = _ElmsToPlot[i];
+			if (elmNum < _begin || elmNum > _end) continue;
             pFile = fopen( _ElmFiles[i].c_str(), "a" );
             fprintf( pFile, "%12.3e", _T );
             fprintf( pFile, "%12.3e", _Stress[elmNum] );
