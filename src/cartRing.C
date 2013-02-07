@@ -2505,7 +2505,7 @@ void CartRing::printSTheta () const {
         FILE * pFile;
         pFile = fopen( _SThetaFile.c_str(), "a" );
         //fprintf( pFile, "%12.3e", _T );
-	for (unsigned i = 0; i < _Nx; i++) {
+	for (unsigned i = _begin; i <= _end; i++) {
 	    double sprTheta = (double)(360*(i+0.5))/(double)(_Nx);
 	    double cohTheta = (double)(360*(i+1))/(double)(_Nx);
 	    fprintf( pFile, "%12.3e", _T );
