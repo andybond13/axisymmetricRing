@@ -573,7 +573,7 @@ void CartRing::grabInfo (double& runTime, unsigned& numFrag, unsigned& nIter, do
     //Grabs information from a completed run and returns it to the post-processor
     //Returns all values
 	if (_myid > 0) return;
-    runTime = ( std::clock() - _start ) / (double) CLOCKS_PER_SEC;
+    runTime = ( (double)std::clock() - (double)_start ) / (double) CLOCKS_PER_SEC;
     numFrag = _numFrag;
     nIter = _Nt;
     Wcoh0 = _Wcoh[0];
@@ -592,7 +592,7 @@ void CartRing::grabInfo (double& runTime, unsigned& numFrag, unsigned& nIter, do
     //Grabs information from a completed run and returns it to the post-processor
     //Returns doubles only
 	if (_myid > 0) return;
-    runTime = ( std::clock() - _start ) / (double) CLOCKS_PER_SEC;
+    runTime = ( (double)std::clock() - (double)_start ) / (double) CLOCKS_PER_SEC;
     numFrag = _numFrag;
     nIter = _Nt;
     Wcoh0 = _Wcoh[0];
