@@ -165,7 +165,7 @@ CartRing::~CartRing () {
 		        std::string sThetaFil = "./gnuplot/plotSTheta.plt";
 		        fprintf( pFileP, "gnuplot %s\n", sThetaFil.c_str() );
 		    }
-		    fprintf( pFileP, "\neog ./pngFiles/* &\n" );
+		    fprintf( pFileP, "\n/usr/bin/open -a \"/Applications/Google Chrome.app\" ./pngFiles/*.svg &\n" );
 		    fclose( pFileP );
 		    chmod( plotFil.c_str(), 0775 );
 		}
@@ -1924,8 +1924,8 @@ void CartRing::plotAtNodes ( const std::vector<unsigned>& NodalIds ) {
 		fprintf( pFileVr, "# Radial velocities at prescribed nodes\n" );
 		fprintf( pFileVr, "set xlabel \"time (s)\"\n" );
 		fprintf( pFileVr, "set ylabel \"radial velocities (m/s)\"\n" );
-		fprintf( pFileVr, "set terminal png size 1200, 800\n\n" );
-		fprintf( pFileVr, "set output './pngFiles/nodalRadialVelo.png'\n");
+		fprintf( pFileVr, "set terminal svg size 1200, 800\n\n" );
+		fprintf( pFileVr, "set output './pngFiles/nodalRadialVelo.svg'\n");
 		fprintf( pFileVr, "plot " );
 		fclose( pFileVr );
 
@@ -1939,8 +1939,8 @@ void CartRing::plotAtNodes ( const std::vector<unsigned>& NodalIds ) {
 		fprintf( pFileVt, "# Circumferential velocities at prescribed nodes\n" );
 		fprintf( pFileVt, "set xlabel \"time (s)\"\n" );
 		fprintf( pFileVt, "set ylabel \"circumferential velocities (m/s)\"\n" );
-		fprintf( pFileVt, "set terminal png size 1200, 800\n\n" );
-		fprintf( pFileVt, "set output './pngFiles/nodalCircumVelo.png'\n");
+		fprintf( pFileVt, "set terminal svg size 1200, 800\n\n" );
+		fprintf( pFileVt, "set output './pngFiles/nodalCircumVelo.svg'\n");
 		fprintf( pFileVt, "plot " );
 		fclose( pFileVt );
 
@@ -2001,8 +2001,8 @@ void CartRing::plotAtElms ( const std::vector<unsigned>& ElmIds ) {
 		fprintf( pFileS, "# Stresses at prescribed elements\n" );
 		fprintf( pFileS, "set xlabel \"time (s)\"\n" );
 		fprintf( pFileS, "set ylabel \"stress (Pa)\"\n" );
-		fprintf( pFileS, "set terminal png size 1200, 800\n\n" );
-		fprintf( pFileS, "set output './pngFiles/elmStress.png'\n");
+		fprintf( pFileS, "set terminal svg size 1200, 800\n\n" );
+		fprintf( pFileS, "set output './pngFiles/elmStress.svg'\n");
 		fprintf( pFileS, "plot " );
 		fclose( pFileS );
 
@@ -2054,34 +2054,34 @@ void CartRing::plotEnergies () {
     fprintf( pFileW, "# Global energies\n" );
     fprintf( pFileW, "set xlabel \"time (s)\"\n" );
     fprintf( pFileW, "set ylabel \"energy (J)\"\n" );
-    fprintf( pFileW, "set terminal png size 1200, 800\n\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgSpr.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800\n\n" );
+    fprintf( pFileW, "set output './pngFiles/enrgSpr.svg'\n");
     if (_defectRange == 0.0) {
 	fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:2 ti 'Wspr' w l\n" );
     } else {
 	fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:2 ti 'WsprE' w l ,\\\n" );
 	fprintf( pFileW, "     './datFiles/energies.dat' usi 1:14 ti 'WsprD' w l\n" );
     }
-    fprintf( pFileW, "set output './pngFiles/enrgCoh.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgCoh.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:3 ti 'WcoD' w l ,\\\n" );
     fprintf( pFileW, "     './datFiles/energies.dat' usi 1:4 ti 'WcoE' w l\n\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgExt.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgExt.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:5 ti 'Wext' w l\n\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgKin.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgKin.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:6 ti 'Wkin' w l\n\n" );
     fprintf( pFileW, "set ylabel \"Energy Balance Check\"\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgBalance.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgBalance.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:8 ti 'Wsum' w l,\\\n" );
     fprintf( pFileW, "     './datFiles/energies.dat' usi 1:7 ti '0.01 * Wmax' w l\n\n" );
     fprintf( pFileW, "set ylabel \"J/s\"\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgdWcoh.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgdWcoh.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:11 ti 'EMA(dWcoh)' w l\n\n" );
     fprintf( pFileW, "set ylabel \"J/s2\"\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgd2Wcoh.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgd2Wcoh.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:12 ti 'd(EMA(dWcoh))' w l\n\n" );
     fprintf( pFileW, "set logscale y\n" );
     fprintf( pFileW, "set ylabel \"J/s\"\n" );
-    fprintf( pFileW, "set output './pngFiles/enrgdWcoh100.png'\n");
+    fprintf( pFileW, "set output './pngFiles/enrgdWcoh100.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:13 ti 'dWcoh100' w l\n\n" );
     fclose( pFileW );
 
@@ -2163,15 +2163,15 @@ void CartRing::plotFrags (){
     fprintf( pFileW, "# Fragmentation Information\n" );
     fprintf( pFileW, "set xlabel \"time (s)\"\n" );
     fprintf( pFileW, "set ylabel \"Number of Fragments\"\n" );
-    fprintf( pFileW, "set terminal png size 1200, 800\n\n" );
-    fprintf( pFileW, "set output './pngFiles/numFrag.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800\n\n" );
+    fprintf( pFileW, "set output './pngFiles/numFrag.svg'\n");
     fprintf( pFileW, "plot './datFiles/fraginfo.dat' usi 1:3 ti 'Sum of Damage' w l,\\\n" );
     fprintf( pFileW, "     './datFiles/fraginfo.dat' usi 1:2 ti '# Frags' w l\n\n" );
 
 
     fprintf( pFileW, "set xlabel \"time (s)\"\n" );
     fprintf( pFileW, "set ylabel \"stress (Pa)\"\n" );
-    fprintf( pFileW, "set output './pngFiles/SigL_R_C.png'\n");
+    fprintf( pFileW, "set output './pngFiles/SigL_R_C.svg'\n");
     fprintf( pFileW, " plot './datFiles/fraginfo.dat' usi 1:10 ti 'SigL'w l,\\\n");
     fprintf( pFileW, "             './datFiles/fraginfo.dat' usi 1:11 ti 'SigR' w l,\\\n");
     fprintf( pFileW, "             './datFiles/fraginfo.dat' usi 1:13 ti 'SigC' w l\n\n");
@@ -2180,8 +2180,8 @@ void CartRing::plotFrags (){
     fprintf( pFileW, "set logscale y\n" );		//Time-step graph
     fprintf( pFileW, "set xlabel \"time (s)\"\n" );
     fprintf( pFileW, "set ylabel \"_Dt\"\n" );
-    fprintf( pFileW, "set terminal png size 1200, 800 \n\n" );
-    fprintf( pFileW, "set output './pngFiles/dt.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800 \n\n" );
+    fprintf( pFileW, "set output './pngFiles/dt.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:10 ti 'Refinement' w l,\\\n" );
     fprintf( pFileW, "     './datFiles/energies.dat' usi 1:9 ti 'Time Step Flag' w l\n\n" );
 
@@ -2214,8 +2214,8 @@ void CartRing::plotHisto () {
     fprintf( pFileW, "set xlabel \"Fragment Length, Lf (m)\"\n" );
     fprintf( pFileW, "set ylabel \"# ( Length > Lf )\"\n" );
     fprintf( pFileW, "set yrange [0:%u]\n", _numFrag);
-    fprintf( pFileW, "set terminal png size 1200, 800 \n\n" );
-    fprintf( pFileW, "set output './pngFiles/fraginvcdf.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800 \n\n" );
+    fprintf( pFileW, "set output './pngFiles/fraginvcdf.svg'\n");
     fprintf( pFileW, "plot './datFiles/fraghisto.dat' usi 1:2 ti '' w l;\n\n" );
     fprintf( pFileW, "set boxwidth 0.9 absolute\n" );
     fprintf( pFileW, "set style fill   solid 1.00 border -1\n" );
@@ -2223,8 +2223,8 @@ void CartRing::plotHisto () {
     fprintf( pFileW, "set xlabel \"Size Distribution Relative to Max. Frag. Size (Percent)\"\n" );
     fprintf( pFileW, "set ylabel \"Frequency\"\n" );
     fprintf( pFileW, "set xrange [0:100]\n" );
-    fprintf( pFileW, "set terminal png size 1200, 800 \n\n" );
-    fprintf( pFileW, "set output './pngFiles/fragHisto.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800 \n\n" );
+    fprintf( pFileW, "set output './pngFiles/fragHisto.svg'\n");
     fprintf( pFileW, "plot './datFiles/fraghisto.dat' using 3:4:(4) ti '' with boxes;\n" );
     fclose( pFileW );
 
@@ -2253,23 +2253,23 @@ void CartRing::plotSTheta () {
     fprintf( pFileW, "set xlabel \"Theta (degrees)\"\n" );
     fprintf( pFileW, "set ylabel \"Stress (MPa)\"\n" );
     fprintf( pFileW, "set xrange [0:360]\n");
-    fprintf( pFileW, "set terminal png size 1200, 800 \n\n" );
-    fprintf( pFileW, "set output './pngFiles/stressThetaCL.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800 \n\n" );
+    fprintf( pFileW, "set output './pngFiles/stressThetaCL.svg'\n");
     fprintf( pFileW, "plot './datFiles/stresstheta.dat' usi 4:5 ti 'Link Stress' w l;\n\n" );
     fprintf( pFileW, "set title \"Spring Element Stress vs. Theta Graph\"\n"); 
     fprintf( pFileW, "set xlabel \"Theta (degrees)\"\n" );
     fprintf( pFileW, "set ylabel \"Stress (MPa)\"\n" );
     fprintf( pFileW, "set xrange [0:360]\n");
-    fprintf( pFileW, "set terminal png size 1200, 800\n\n" );
-    fprintf( pFileW, "set output './pngFiles/stressThetaSE.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800\n\n" );
+    fprintf( pFileW, "set output './pngFiles/stressThetaSE.svg'\n");
     fprintf( pFileW, "plot './datFiles/stresstheta.dat' usi 2:3 ti 'Spring Stress' w l;\n\n" );
 
     fprintf( pFileW, "set title \"Cohesive Link Damage vs. Theta Graph\"\n"); 
     fprintf( pFileW, "set xlabel \"Theta (degrees)\"\n" );
     fprintf( pFileW, "set ylabel \"Damage\"\n" );
     fprintf( pFileW, "set xrange [0:360]\n");
-    fprintf( pFileW, "set terminal png size 1200, 800 \n\n" );
-    fprintf( pFileW, "set output './pngFiles/stressThetaCLD.png'\n");
+    fprintf( pFileW, "set terminal svg size 1200, 800 \n\n" );
+    fprintf( pFileW, "set output './pngFiles/stressThetaCLD.svg'\n");
     fprintf( pFileW, "plot './datFiles/stresstheta.dat' usi 4:6 ti 'Damage' w l;\n\n" );
 
     fclose( pFileW );
@@ -2567,8 +2567,9 @@ void CartRing::printClean () const {
     fprintf( pFile, "cd ./datFiles/; rm *.dat; cd -\n\n" );
     fprintf( pFile, "# Remove the gnuplot files\n" );
     fprintf( pFile, "cd ./gnuplot/ ; rm *.plt; cd -\n\n" );
-    fprintf( pFile, "# Remove the png files\n" );
+    fprintf( pFile, "# Remove the png/svg files\n" );
     fprintf( pFile, "cd ./pngFiles/; rm *.png; cd -\n\n" );
+    fprintf( pFile, "cd ./pngFiles/; rm *.svg; cd -\n\n" );
     fprintf( pFile, "# Remove the vtk files\n" );
     fprintf( pFile, "cd ./vtkFiles/; rm *.vtk; cd -\n\n" );
     fprintf( pFile, "# Remove plot.sh\n" );
