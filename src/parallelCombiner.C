@@ -37,12 +37,15 @@ ParallelCombiner::~ParallelCombiner ()  {}
 void ParallelCombiner::run(const int procs, const std::string resultsPath, int Nx, bool deleteFlag) {
 
 	/*
-	 CURRENTLY COMBINES VTK FILES ONLY!!!	
+	 CURRENTLY COMBINES VTK AND cohLaw.dat FILES ONLY!!!	
 	*/
 
 	string vtkPath = resultsPath + "/vtkFiles/";
+	string datPath = resultsPath + "/datFiles/";
 
-	//check files for sets
+
+	//VTK-----------------------------------------------
+	//check vtk files for sets
 	findSets(vtkPath);
 
 	//combine sets
@@ -61,7 +64,12 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath, int N
 		}
 	}
 
-	cout << "*** files combined" << endl;
+	cout << "*** vtk files combined" << endl;
+
+	//cohLaw.dat----------------------------------------
+	//combine cohLaw.dat's
+	combineCohLaw(datPath,deleteFlag);
+
 	return;
 }
 
@@ -353,6 +361,93 @@ bool ParallelCombiner::stringsMatch(std::string in1, std::string in2) {
 	if (in1==in2) return true;
 
 	return false;
+}
+
+void ParallelCombiner::combineCohLaw(std::string inPath, bool deleteFlag) {
+
+	string p = inPath;
+	vector<string> inSet(0);
+
+	//get file listing
+	if (is_directory(p)) {
+		for (directory_iterator itr(p); itr!=directory_iterator(); ++itr) {
+//			cout << itr->path().filename() << " "; // display filename only
+			if (is_regular_file(itr->status()) && itr->path().string().find("cohLaw_")!=std::string::npos ) {
+				inSet.push_back(itr->path().string());
+			}
+		}
+	} else {
+		//cout << (exists(p) ? "Found: " : "Not found: ") << p << endl;
+	}
+
+	if (inSet.size() == 0) return;
+
+	//open target file
+	assert(exists(inSet[0]));
+	ofstream outFile;
+
+	string outFileName = inSet[0].substr(0,inSet[0].length()-6) + ".dat";
+	outFile.open(outFileName.c_str());	
+
+	//open all files in set
+	string line;
+	int linecount = 0;
+	std::ifstream files[inSet.size()];
+	for(unsigned i = 0; i < inSet.size(); i++) {
+		assert(exists(inSet[i]));
+		string filename = inSet[i];
+		files[i].open(filename.c_str());
+	}
+
+	//***find last header line 
+	while ( getline( files[0] , line ) ) {
+		unsigned found = line.find("time");
+		outFile << line << endl;
+		linecount++ ;
+		if (found == 8) 	break;
+	}
+
+	while (1==1) {
+		for(unsigned i = 0; i < inSet.size(); i++) {
+			getline( files[i] , line );
+			size_t found = line.find("N/A");
+			if (line.length() == 0) goto OutOfWhile;
+
+			if (i > 0) outFile << " ";
+			if (i == 0) 	outFile << line.substr(0,12);
+
+			if (i == 0 && found!=std::string::npos) {
+				//do nothing
+			} else if ( i != 0 && found!=std::string::npos) {
+				//do nothing
+			} else {
+				outFile << line.substr(12,line.length());
+			}
+			linecount++ ;
+		}
+		outFile << endl;
+	}
+
+	OutOfWhile:
+	//close files
+	for(unsigned i = 0; i < inSet.size(); i++) {
+		files[i].close();
+	}
+	outFile.close();
+	cout << "*** cohLaw files combined" << endl;
+
+		//remove unnecessary files
+	if (deleteFlag) {												
+		for (unsigned j = 0; j < inSet.size(); ++j) {
+			string in2 = inSet[j];
+//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+			remove(in2);
+//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+//			cout << endl;
+		}
+	}
+
+	return;
 }
 
 

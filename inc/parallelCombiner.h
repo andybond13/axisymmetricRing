@@ -51,6 +51,8 @@ private:
 	void combineSet(std::vector<std::string> inSet, int Nx);
 	bool stringsMatch(std::string in1, std::string in2);
 
+	void combineCohLaw(std::string inPath, bool deleteFlag);
+
 };
 
 #endif//__PARALLELCOMBINER_H__
