@@ -52,6 +52,7 @@ private:
 	bool stringsMatch(std::string in1, std::string in2);
 
 	void combineCohLaw(std::string inPath, bool deleteFlag);
+	void combineSTheta(std::string inPath, bool deleteFlag);
 
 };
 

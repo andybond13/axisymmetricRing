@@ -70,6 +70,10 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath, int N
 	//combine cohLaw.dat's
 	combineCohLaw(datPath,deleteFlag);
 
+	//stresstheta.dat-----------------------------------
+	//combine stresstheta.dat's
+	combineSTheta(datPath,deleteFlag);
+
 	return;
 }
 
@@ -450,4 +454,95 @@ void ParallelCombiner::combineCohLaw(std::string inPath, bool deleteFlag) {
 	return;
 }
 
+void ParallelCombiner::combineSTheta(std::string inPath, bool deleteFlag) {
+
+	string p = inPath;
+	vector<string> inSet(0);
+
+	//get file listing
+	if (is_directory(p)) {
+		for (directory_iterator itr(p); itr!=directory_iterator(); ++itr) {
+//			cout << itr->path().filename() << " " << endl; // display filename only
+			if (is_regular_file(itr->status()) && itr->path().string().find("stresstheta_")!=std::string::npos ) {
+				inSet.push_back(itr->path().string());
+			}
+		}
+	} else {
+		//cout << (exists(p) ? "Found: " : "Not found: ") << p << endl;
+	}
+
+	if (inSet.size() == 0) return;
+	if (inSet.size() == 1) {
+		remove(inSet[0]);
+		cout << "*** no stresstheta data found" << endl;
+		return;
+	}
+
+	//open target file
+	assert(exists(inSet[0]));
+	ofstream outFile;
+
+	string outFileName = inSet[0].substr(0,inSet[0].length()-6) + ".dat";
+	outFile.open(outFileName.c_str());	
+
+	//open all files in set
+	string line;
+	string oldLine[inSet.size()];
+	int linecount = 0;
+	std::ifstream files[inSet.size()];
+	for(unsigned i = 0; i < inSet.size(); i++) {
+		assert(exists(inSet[i]));
+		string filename = inSet[i];
+		files[i].open(filename.c_str());
+	}
+
+	//***find last header line 
+	while ( getline( files[0] , line ) ) {
+		unsigned found = line.find("#Time");
+		outFile << line << endl;
+		linecount++ ;
+		if (found == 0) 	break;
+	}
+
+	while (1==1) {
+		for(unsigned i = 0; i < inSet.size(); i++) {
+			outFile << oldLine[i];
+			while (getline( files[i] , line )) {
+
+				if (line.length() == 0) {
+					getline( files[i] , line );
+					if (line.length() == 0 && i == inSet.size()-1) { goto OutOfWhile2;}
+					oldLine[i] = line + '\n';
+					break;
+				}
+				oldLine[i] = "";
+				outFile << line << endl;
+				linecount++ ;
+			}
+			//NextWhile:
+		}
+		outFile << endl;
+	}
+
+	OutOfWhile2:
+	//close files
+	for(unsigned i = 0; i < inSet.size(); i++) {
+		files[i].close();
+	}
+	outFile.close();
+	cout << "*** stresstheta files combined" << endl;
+
+		//remove unnecessary files
+	if (deleteFlag) {												
+		for (unsigned j = 0; j < inSet.size(); ++j) {
+			string in2 = inSet[j];
+//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+			remove(in2);
+//			cout << (exists(in2) ? "Found: " : "Not found: ") << in2 << endl;
+//			cout << endl;
+		}
+	}
+
+	return;
+}
 
