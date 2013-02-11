@@ -2558,12 +2558,12 @@ void CartRing::printSTheta () const {
 	    double cohTheta = (double)(360*(i+1))/(double)(_Nx);
 	    fprintf( pFile, "%12.3e", _T );
 	    fprintf( pFile, "%12.3f", sprTheta );
-            fprintf( pFile, "%12.3e", _Stress[i] );
-            fprintf( pFile, "%12.3f", cohTheta );
-            fprintf( pFile, "%12.3e", _sigCoh[i] );
-            fprintf( pFile, "%12.3e", _D[i][0] );
-            fprintf( pFile, "%12.3f", (double)(i) );
-            fprintf( pFile, "%12.3f", (double)(_Nt) );
+        fprintf( pFile, "%12.3e", _Stress[i] );
+        fprintf( pFile, "%12.3f", cohTheta );
+        fprintf( pFile, "%12.3e", _sigCoh[i] );
+        fprintf( pFile, "%12.3e", _D[i][0] );
+        fprintf( pFile, "%12.3f", (double)(i) );
+        fprintf( pFile, "%12.3f", (double)(_Nt) );
 	    fprintf( pFile, "\n" );
 	}
         fprintf( pFile, "\n" );
