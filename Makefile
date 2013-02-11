@@ -1,7 +1,8 @@
 CPP       = mpic++
-CPP_FLAGS = -O3 -Wall -fPIC -m64 -g -lboost_system -lboost_filesystem
+CPP_FLAGS = -O3 -Wall -fPIC -m64 -g
 SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/
+LIBS = -L /usr/lib/boost/lib -L/usr/local/lib/ -lboost_system -lboost_filesystem
 #CTL       = $(SOFTWARE)/utils/ctl
 #CTLINC    = $(CTL)/include
 #CTLLIB    = $(CTL)/lib/libctl_g++Linuxx86_64/libctl.so
@@ -19,7 +20,7 @@ TEST      = ./test/
 
 # Classical compilation of the main
 main.exe: $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o $(OBJMAIN)ParallelCombiner.o
-	$(CPP) $(CPP_FLAGS) -o $(OBJMAIN)main.exe $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o $(OBJMAIN)ParallelCombiner.o
+	$(CPP) $(CPP_FLAGS) -o $(OBJMAIN)main.exe $(OBJMAIN)main.o $(OBJMAIN)CartRing.o $(OBJMAIN)MatPropGen.o $(OBJMAIN)ParallelCombiner.o $(LIBS)
 
 $(OBJMAIN)main.o: $(TEST)main.cpp
 	$(CPP) $(CPP_FLAGS) -c $(INCS) $(TEST)main.cpp -o $(OBJMAIN)main.o
@@ -31,7 +32,7 @@ $(OBJMAIN)MatPropGen.o: $(SRC)matPropGen.C
 	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)matPropGen.C -o $(OBJMAIN)MatPropGen.o
 
 $(OBJMAIN)ParallelCombiner.o: $(SRC)parallelCombiner.C
-	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)parallelCombiner.C -o $(OBJMAIN)ParallelCombiner.o
+	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)parallelCombiner.C -o $(OBJMAIN)ParallelCombiner.o $(LIBS)
 
 
 # Compilation of the componant as a shared library and a remote executables
