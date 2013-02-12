@@ -521,7 +521,7 @@ void ParallelCombiner::combineSTheta(std::string inPath, bool deleteFlag) {
 			}
 			//NextWhile:
 		}
-		outFile << endl;
+		outFile << endl;		outFile << endl;
 	}
 
 	OutOfWhile2:
