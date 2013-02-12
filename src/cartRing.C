@@ -447,123 +447,123 @@ void CartRing::printHisto() {
     // Prints Histogram and scaled 1-cdf figure
     if (_numFrag > 1) {
         plotHisto();
-	_fragInvCDF.resize(2);
-	_fragInvCDF[0].resize(1000);	//a length, from zero to the max. fragment size
-	_fragInvCDF[1].resize(1000);	//number of fragments larger than this length
-	_fHisto.assign(25, 0);		//number of bins for the fragment histogram
+		_fragInvCDF.resize(2);
+		_fragInvCDF[0].resize(1000);	//a length, from zero to the max. fragment size
+		_fragInvCDF[1].resize(1000);	//number of fragments larger than this length
+		_fHisto.assign(25, 0);		//number of bins for the fragment histogram
 	
-	//Histogram
-        double max = _fMax;	//size
-	//Step through fragment length list; increase count in the bin if fragment fits
-	for (unsigned k = 0; k < _fragLength.size(); k++){
-	    if (_fragLength[k] < max * 0.04){
-		_fHisto[0] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.08) && (_fragLength[k] >= max * 0.04)) {
-		_fHisto[1] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.12) && (_fragLength[k] >= max * 0.08)) {
-		_fHisto[2] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.16) && (_fragLength[k] >= max * 0.12)) {
-		_fHisto[3] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.20) && (_fragLength[k] >= max * 0.16)) {
-		_fHisto[4] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.24) && (_fragLength[k] >= max * 0.20)) {
-		_fHisto[5] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.28) && (_fragLength[k] >= max * 0.24)) {
-		_fHisto[6] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.32) && (_fragLength[k] >= max * 0.28)) {
-		_fHisto[7] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.36) && (_fragLength[k] >= max * 0.32)) {
-		_fHisto[8] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.40) && (_fragLength[k] >= max * 0.36)) {
-		_fHisto[9] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.44) && (_fragLength[k] >= max * 0.40)) {
-		_fHisto[10] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.48) && (_fragLength[k] >= max * 0.44)) {
-		_fHisto[11] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.52) && (_fragLength[k] >= max * 0.48)) {
-		_fHisto[12] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.56) && (_fragLength[k] >= max * 0.52)) {
-		_fHisto[13] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.60) && (_fragLength[k] >= max * 0.56)) {
-		_fHisto[14] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.64) && (_fragLength[k] >= max * 0.60)) {
-		_fHisto[15] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.68) && (_fragLength[k] >= max * 0.64)) {
-		_fHisto[16] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.72) && (_fragLength[k] >= max * 0.68)) {
-		_fHisto[17] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.76) && (_fragLength[k] >= max * 0.72)) {
-		_fHisto[18] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.80) && (_fragLength[k] >= max * 0.76)) {
-		_fHisto[19] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.84) && (_fragLength[k] >= max * 0.80)) {
-		_fHisto[20] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.88) && (_fragLength[k] >= max * 0.84)) {
-		_fHisto[21] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.92) && (_fragLength[k] >= max * 0.88)) {
-		_fHisto[22] += 1;
-	    }
-	    if ((_fragLength[k] < max * 0.96) && (_fragLength[k] >= max * 0.92)) {
-		_fHisto[23] += 1;
-	    }
-	    if ((_fragLength[k] <= max) && (_fragLength[k] >= max * 0.96)) {
-		_fHisto[24] += 1;
-	    }
-	}
-
-	//Open file to record histogram and 1-cdf data
-	if ( _HistoFile.size() > 0 ) {
-	    FILE * pFile;
-	    pFile = fopen( _HistoFile.c_str(), "a" );
-	    double j = 0;
-	    for (unsigned i = 0; i < 1000; i++) {
-
-		//grab the 1-cdf data; 
-		unsigned count = 0;
-		j = max * (i / 1000.0);	//from 0 to max length, 1000 increments
-		for (unsigned k = 0; k < _numFrag; k++) {
-		    if (_fragLength[k] > j) {		//if frag length greater than j, add to count
-			count += 1;
-		    }
+		//Histogram
+		 double max = _fMax;	//size
+		//Step through fragment length list; increase count in the bin if fragment fits
+		for (unsigned k = 0; k < _fragLength.size(); k++){
+			if (_fragLength[k] < max * 0.04){
+			_fHisto[0] += 1;
+			}
+			if ((_fragLength[k] < max * 0.08) && (_fragLength[k] >= max * 0.04)) {
+			_fHisto[1] += 1;
+			}
+			if ((_fragLength[k] < max * 0.12) && (_fragLength[k] >= max * 0.08)) {
+			_fHisto[2] += 1;
+			}
+			if ((_fragLength[k] < max * 0.16) && (_fragLength[k] >= max * 0.12)) {
+			_fHisto[3] += 1;
+			}
+			if ((_fragLength[k] < max * 0.20) && (_fragLength[k] >= max * 0.16)) {
+			_fHisto[4] += 1;
+			}
+			if ((_fragLength[k] < max * 0.24) && (_fragLength[k] >= max * 0.20)) {
+			_fHisto[5] += 1;
+			}
+			if ((_fragLength[k] < max * 0.28) && (_fragLength[k] >= max * 0.24)) {
+			_fHisto[6] += 1;
+			}
+			if ((_fragLength[k] < max * 0.32) && (_fragLength[k] >= max * 0.28)) {
+			_fHisto[7] += 1;
+			}
+			if ((_fragLength[k] < max * 0.36) && (_fragLength[k] >= max * 0.32)) {
+			_fHisto[8] += 1;
+			}
+			if ((_fragLength[k] < max * 0.40) && (_fragLength[k] >= max * 0.36)) {
+			_fHisto[9] += 1;
+			}
+			if ((_fragLength[k] < max * 0.44) && (_fragLength[k] >= max * 0.40)) {
+			_fHisto[10] += 1;
+			}
+			if ((_fragLength[k] < max * 0.48) && (_fragLength[k] >= max * 0.44)) {
+			_fHisto[11] += 1;
+			}
+			if ((_fragLength[k] < max * 0.52) && (_fragLength[k] >= max * 0.48)) {
+			_fHisto[12] += 1;
+			}
+			if ((_fragLength[k] < max * 0.56) && (_fragLength[k] >= max * 0.52)) {
+			_fHisto[13] += 1;
+			}
+			if ((_fragLength[k] < max * 0.60) && (_fragLength[k] >= max * 0.56)) {
+			_fHisto[14] += 1;
+			}
+			if ((_fragLength[k] < max * 0.64) && (_fragLength[k] >= max * 0.60)) {
+			_fHisto[15] += 1;
+			}
+			if ((_fragLength[k] < max * 0.68) && (_fragLength[k] >= max * 0.64)) {
+			_fHisto[16] += 1;
+			}
+			if ((_fragLength[k] < max * 0.72) && (_fragLength[k] >= max * 0.68)) {
+			_fHisto[17] += 1;
+			}
+			if ((_fragLength[k] < max * 0.76) && (_fragLength[k] >= max * 0.72)) {
+			_fHisto[18] += 1;
+			}
+			if ((_fragLength[k] < max * 0.80) && (_fragLength[k] >= max * 0.76)) {
+			_fHisto[19] += 1;
+			}
+			if ((_fragLength[k] < max * 0.84) && (_fragLength[k] >= max * 0.80)) {
+			_fHisto[20] += 1;
+			}
+			if ((_fragLength[k] < max * 0.88) && (_fragLength[k] >= max * 0.84)) {
+			_fHisto[21] += 1;
+			}
+			if ((_fragLength[k] < max * 0.92) && (_fragLength[k] >= max * 0.88)) {
+			_fHisto[22] += 1;
+			}
+			if ((_fragLength[k] < max * 0.96) && (_fragLength[k] >= max * 0.92)) {
+			_fHisto[23] += 1;
+			}
+			if ((_fragLength[k] <= max) && (_fragLength[k] >= max * 0.96)) {
+			_fHisto[24] += 1;
+			}
 		}
+
+		//Open file to record histogram and 1-cdf data
+		if ( _HistoFile.size() > 0 ) {
+			FILE * pFile;
+			pFile = fopen( _HistoFile.c_str(), "a" );
+			double j = 0;
+			for (unsigned i = 0; i < 1000; i++) {
+
+				//grab the 1-cdf data; 
+				unsigned count = 0;
+				j = max * (i / 1000.0);	//from 0 to max length, 1000 increments
+				for (unsigned k = 0; k < _numFrag; k++) {
+					if (_fragLength[k] > j) {		//if frag length greater than j, add to count
+						count += 1;
+					}
+				}
 		
-		//save to vector
-                _fragInvCDF[0][i] = j;
-		_fragInvCDF[1][i] = (double)count;
-		fprintf( pFile, "%12.3e %u", j, count);		//print to file
+				//save to vector
+				_fragInvCDF[0][i] = j;
+				_fragInvCDF[1][i] = (double)count;
+				fprintf( pFile, "%12.3e %u", j, count);		//print to file
 
-		//print histogram info to file - relative size (% of max frag length) & count
-	        if (i < 25) {	//piggybacking the for loop, only need the first 25
-		    fprintf( pFile, " %f %u", (double)(i*4+2), _fHisto[i] );
-	        } else {
-		    fprintf( pFile, " 0 0");
+				//print histogram info to file - relative size (% of max frag length) & count
+				if (i < 25) {	//piggybacking the for loop, only need the first 25
+					fprintf( pFile, " %f %u", (double)(i*4+2), _fHisto[i] );
+				} else {
+					fprintf( pFile, " 0 0");
+				}
+				fprintf( pFile, "\n" );
+			}
+			fclose( pFile );
 		}
-		fprintf( pFile, "\n" );
-	    }
-	    fclose( pFile );
-	}
     }
 }
 
@@ -852,7 +852,11 @@ void CartRing::NewmarkReso () {
 			_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
 		}
 
-		//Calculate moving averages for plateau location, discretely
+		//Calculate moving averages for plateau location, discretely	
+		//AJS 2/12/2013 -- NOTE!: This only calculates every 100 time-steps,
+		//	so for smaller problems, _Wcoh100[2] is never updated, the column
+		//	of data is all zero and gnuplot won't plot it!
+
 		if (_Nt % 100 == 0) {
 			double old = _Wcoh100[2];
 			_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
