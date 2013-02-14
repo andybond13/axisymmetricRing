@@ -823,12 +823,26 @@ void CartRing::NewmarkReso () {
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
     _Wcoh[1] = 0.0;
-    for ( unsigned i = _begin; i <= _end; i++ ) {
-        std::vector<double> wCoh = cohForc( i );
-        _Wcoh[0] += wCoh[0];
-        _Wcoh[1] += wCoh[1];
-    }
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_Wcoh[0], &_Wcoh[0], 2, MPI::DOUBLE, MPI_SUM);
+	for (int j = 0; j < _numprocs; ++j) {
+		int size;
+		int begin;
+		if (j == _myid) {
+			size = _end - _begin + 1;
+			begin = _begin;
+			for ( unsigned i = _begin; i <= _end; i++ ) {
+				std::vector<double> wCoh = cohForc( i );
+				_Wcoh[0] += wCoh[0];
+				_Wcoh[1] += wCoh[1];
+			}
+		}
+		MPI::COMM_WORLD.Bcast( &size, 1, MPI::INT, j);
+		MPI::COMM_WORLD.Bcast( &begin, 1, MPI::INT, j);
+		MPI::COMM_WORLD.Barrier();
+		MPI::COMM_WORLD.Bcast( &_ActivCoh[begin], size, MPI::INT, j);
+		MPI::COMM_WORLD.Barrier();
+	}
+
+	COMM_WORLD.Allreduce ( &_Wcoh[0], &_Wcoh[0], 2, MPI::DOUBLE, MPI_SUM);
 
     //Calculate moving averages for plateau location, continuously
 	if(_myid == 0) {																											//correct?
@@ -978,36 +992,38 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
 
         // Test the value of the cohesive stress
         if ( _SigC.size() == _Nx ) {
-	    _sigCoh[cohNum] = 0;
-            _sigCoh[cohNum] = cosThetaPred( nod_1 ) * _Fcoh[nod_1][1] / _A
-            			- sinThetaPred( nod_1 ) * _Fcoh[nod_1][0] / _A;
+			_sigCoh[cohNum] = 0;
+		    _sigCoh[cohNum] = cosThetaPred( nod_1 ) * _Fcoh[nod_1][1] / _A
+		        			- sinThetaPred( nod_1 ) * _Fcoh[nod_1][0] / _A;
 	
-	    //Detect if this cohesive link is within the restricted zone of another,
-		//already open link
-	    bool defectRangeFlag = false;	//Assume it is not
-	    if (_defectRange > 0) {
-		//Convert the range into number of links
-		int d_num = (int)floor( _defectRange * (double)(_Nx) / _L) ;
-                for (int i = -d_num; i <= d_num; i++) {
-		    //Create link number that is checked against
-                    int j = ( i + (int)(cohNum) + _Nx) % _Nx;
-		    if (_ActivCoh[j] == true) { 
-			defectRangeFlag = true;		//true if link is open
+			//Detect if this cohesive link is within the restricted zone of another,
+			//already open link
+			bool defectRangeFlag = false;	//Assume it is not
+			if (_defectRange > 0) {
+				//Convert the range into number of links
+				int d_num = (int)floor( _defectRange * (double)(_Nx) / _L) ;
+		      	for (int i = -d_num; i <= d_num; i++) {
+					//Create link number that is checked against
+		            int j = ( i + (int)(cohNum) + _Nx) % _Nx;
+					if (_ActivCoh[j] == true) { 
+						defectRangeFlag = true;		//true if link is open
+					}
+
+			    }
+			}
+			//Allow link to open if all other links in range are closed, & stress>strength
+		    if ( ( _sigCoh[cohNum] > _SigC[cohNum] ) && (defectRangeFlag == false) ) {
+		    		_ActivCoh[cohNum] = true;
+				//Limit stress to maximum value(strength) for this one time-step
+		        _Fcoh[nod_1][0] = -1.0 * _A * _SigC[cohNum] 
+		                            * sinThetaPred( nod_1 );
+		        _Fcoh[nod_1][1] = _A * _SigC[cohNum] * cosThetaPred( nod_1 );
+		        _Fcoh[nod_2][0] = _A * _SigC[cohNum] * sinThetaPred( nod_2 );
+		        _Fcoh[nod_2][1] = -1.0 * _A * _SigC[cohNum]
+		                            * cosThetaPred( nod_2 );
 		    }
-	        }
-	    }
-	    //Allow link to open if all other links in range are closed, & stress>strength
-            if ( ( _sigCoh[cohNum] > _SigC[cohNum] ) && (defectRangeFlag == false) ) {
-                _ActivCoh[cohNum] = true;
-		//Limit stress to maximum value(strength) for this one time-step
-                _Fcoh[nod_1][0] = -1.0 * _A * _SigC[cohNum]
-                                * sinThetaPred( nod_1 );
-                _Fcoh[nod_1][1] = _A * _SigC[cohNum] * cosThetaPred( nod_1 );
-                _Fcoh[nod_2][0] = _A * _SigC[cohNum] * sinThetaPred( nod_2 );
-                _Fcoh[nod_2][1] = -1.0 * _A * _SigC[cohNum]
-                                * cosThetaPred( nod_2 );
-            }
         }
+
     } else {
 	//If open...
         // Compute crack opening distance
@@ -1091,7 +1107,7 @@ void CartRing::calcVelForc ( const unsigned i ) {
 	    _VelForcReq[i][1] = (diff / _Dt) * _m * cosThetaPred(i);		//crossp with e_r
 
         } else {
-	    std::cout << "Direction unknown!" << std::endl; 
+		    std::cout << "Direction unknown!" << std::endl; 
         }
     } else {
 	_VelForcReq[i][0] = 0;		//...else make sure it's zero

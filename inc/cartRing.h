@@ -553,7 +553,7 @@ private:
 		   _sprDamage : damage of springs allowed to have perfect plastic damaging
 
     */
-    std::vector<bool> _ActivCoh;
+    std::vector<int> _ActivCoh;
     std::vector<std::vector<double> > _D;
     std::vector<double> _sigCoh;
     std::vector<double> _delta;
