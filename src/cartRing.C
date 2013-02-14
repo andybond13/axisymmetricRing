@@ -331,9 +331,10 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
     _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2) * (double)(_end-_begin+1)/(double)_Nx;
 }
 
-void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd ) {
+void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd, const bool checkEnergy ) {
 
 	_allowPlateauEnd = allowPlateauEnd;
+	_checkEnergy = checkEnergy;
 
 	//synchronize
 	MPI::COMM_WORLD.Barrier();
@@ -1293,26 +1294,27 @@ void CartRing::energBalance () {
 			fclose( pFile );
 		}
 	}
-
-	//Check to see if too much energy is generated - CUT OFF @ 5%
-	if (_Wsum > 0.05 * _Wmax) {
-		if (_myid == 0) {
-			FILE * pFile;
-			pFile = fopen ( _logPath.c_str(), "a" );
-			fprintf( pFile, "####    t = %12.3e  - Energy Generation Limit Exceeded (5%% Max) \n", _T );
-			fclose( pFile );
-			std::cout << "-------------------------------------------------------" << std::endl;
-			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-			std::cout << "t = " << _T << "  - Energy Generation Limit Exceeded (5% Max): " << _Wsum << " > " 
-				<< _Wmax * 0.05 <<std::endl;
-			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-			std::cout << "-------------------------------------------------------" << std::endl;
+	
+	if (_checkEnergy) {
+		//Check to see if too much energy is generated - CUT OFF @ 5%
+		if (_Wsum > 0.05 * _Wmax) {
+			if (_myid == 0) {
+				FILE * pFile;
+				pFile = fopen ( _logPath.c_str(), "a" );
+				fprintf( pFile, "####    t = %12.3e  - Energy Generation Limit Exceeded (5%% Max) \n", _T );
+				fclose( pFile );
+				std::cout << "-------------------------------------------------------" << std::endl;
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				std::cout << "t = " << _T << "  - Energy Generation Limit Exceeded (5% Max): " << _Wsum << " > " 
+					<< _Wmax * 0.05 <<std::endl;
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				std::cout << "-------------------------------------------------------" << std::endl;
+			}
+			_stopFlag = true;	//Politely terminates the program at the end of this solve loop
 		}
-		_stopFlag = true;	//Politely terminates the program at the end of this solve loop
-	}
 
-	MPI::COMM_WORLD.Bcast( &_stopFlag, 1, MPI::BOOL, 0);
-    
+		MPI::COMM_WORLD.Bcast( &_stopFlag, 1, MPI::BOOL, 0);
+    	}
 }
 
 void CartRing::checkStable () {

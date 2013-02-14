@@ -88,7 +88,7 @@ public:
 	  \param printFrequency : prints all data every x iterations
 	  \param refine : time step refinement factor
     */
-    void solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd );
+    void solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd, const bool checkEnergy );
 
     //! Plot nodal velocities, elem stress and global energies
     /*!
@@ -411,6 +411,7 @@ private:
     double _defectRange;
 	std::clock_t _start;
 	bool _allowPlateauEnd;
+	bool _checkEnergy;
 
 	//boundary node and owner/neighbor list
 	std::vector<unsigned> _nodeList;

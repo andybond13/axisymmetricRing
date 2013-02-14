@@ -84,7 +84,8 @@ int main () {
     unsigned printFreq = 1;
     double refine = 0.2;
 	bool allowPlateauEnd = true;
-	ring.solve( totalTime, printFreq, refine, allowPlateauEnd );
+	bool checkEnergy = false;
+	ring.solve( totalTime, printFreq, refine, allowPlateauEnd, checkEnergy );
     ring.printHisto();
 
 	double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax; double WsprD;
