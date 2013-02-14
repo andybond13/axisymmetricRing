@@ -88,7 +88,7 @@ public:
 	  \param printFrequency : prints all data every x iterations
 	  \param refine : time step refinement factor
     */
-    void solve ( const double endTime, const unsigned printFrequency, const double refine );
+    void solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd );
 
     //! Plot nodal velocities, elem stress and global energies
     /*!
