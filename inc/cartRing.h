@@ -410,6 +410,7 @@ private:
     std::string _logPath;
     double _defectRange;
 	std::clock_t _start;
+	bool _allowPlateauEnd;
 
 	//boundary node and owner/neighbor list
 	std::vector<unsigned> _nodeList;

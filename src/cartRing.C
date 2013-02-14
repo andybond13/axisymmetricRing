@@ -331,7 +331,9 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
     _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2) * (double)(_end-_begin+1)/(double)_Nx;
 }
 
-void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine ) {
+void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd ) {
+
+	_allowPlateauEnd = allowPlateauEnd;
 
 	//synchronize
 	MPI::COMM_WORLD.Barrier();
@@ -808,17 +810,19 @@ void CartRing::NewmarkReso () {
 	//Update spring forces on boundary nodes
 	exchangeSprForc();
 
-	if(_myid == 0) {																										//correct?
-		//Update and store plateau-locating data
-		if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
-			_Wcoh100[0] = _Wcoh[0];
+	if (_allowPlateauEnd) {
+		if(_myid == 0) {																										//correct?
+			//Update and store plateau-locating data
+			if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
+				_Wcoh100[0] = _Wcoh[0];
+			}
+			_dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
+			_dWcoh[1] = _Wcoh[0];
 		}
-		_dWcoh[2] =  _dWcoh[0];		//continuous/andy's method of plateau location; every 1
-		_dWcoh[1] = _Wcoh[0];
+		MPI::COMM_WORLD.Barrier();
+		MPI::COMM_WORLD.Bcast( &_Wcoh100[0], 1, MPI::INT, 0);
+		MPI::COMM_WORLD.Bcast( &_dWcoh[1], 2, MPI::INT, 0);
 	}
-	MPI::COMM_WORLD.Barrier();
-	MPI::COMM_WORLD.Bcast( &_Wcoh100[0], 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast( &_dWcoh[1], 2, MPI::INT, 0);
 
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
@@ -845,47 +849,49 @@ void CartRing::NewmarkReso () {
 	COMM_WORLD.Allreduce ( &_Wcoh[0], &_Wcoh[0], 2, MPI::DOUBLE, MPI_SUM);
 
     //Calculate moving averages for plateau location, continuously
-	if(_myid == 0) {																											//correct?
-		double ratio = 0.9995;
-		_dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
-		_dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
-		if ((_dWcoh[4] == 0.0) && (_dWcoh[3] < 0)) {
-			_dWcoh[4] = _T;					//set time deriv if ema goes negative
-		} else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
-			_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
-		} else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
-			FILE * pFile;
-			pFile = fopen ( _logPath.c_str(), "a" );
-			fprintf( pFile, "####    t = %12.3e  - Plastic Cohesive Energy has plateaued, no further fragmentation expected\n", _T );
-			fclose( pFile );
-			std::cout << "-------------------------------------------------------" << std::endl;
-			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-			std::cout << "t = " << _T << "  - Plastic Cohesive Energy has plateaued, no further fragmentation expected" << std::endl;
-			std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-			std::cout << "-------------------------------------------------------" << std::endl;
-			_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
-		}
+	if (_allowPlateauEnd) {
+		if(_myid == 0) {																											//correct?
+			double ratio = 0.9995;
+			_dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
+			_dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
+			if ((_dWcoh[4] == 0.0) && (_dWcoh[3] < 0)) {
+				_dWcoh[4] = _T;					//set time deriv if ema goes negative
+			} else if ((_dWcoh[4] != 0.0) && (_dWcoh[3] > 0)) {
+				_dWcoh[4] = 0.0; 				//reset time if deriv of ema goes positive
+			} else if ((_dWcoh[4] != 0.0) && (_T > 2.0 * _dWcoh[4])) {
+				FILE * pFile;
+				pFile = fopen ( _logPath.c_str(), "a" );
+				fprintf( pFile, "####    t = %12.3e  - Plastic Cohesive Energy has plateaued, no further fragmentation expected\n", _T );
+				fclose( pFile );
+				std::cout << "-------------------------------------------------------" << std::endl;
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				std::cout << "t = " << _T << "  - Plastic Cohesive Energy has plateaued, no further fragmentation expected" << std::endl;
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				std::cout << "-------------------------------------------------------" << std::endl;
+				_stopFlag = true; 				//stop based on d(EMA(d(Wcoh))), after 2x
+			}
 
-		//Calculate moving averages for plateau location, discretely	
-		//AJS 2/12/2013 -- NOTE!: This only calculates every 100 time-steps,
-		//	so for smaller problems, _Wcoh100[2] is never updated, the column
-		//	of data is all zero and gnuplot won't plot it!
+			//Calculate moving averages for plateau location, discretely	
+			//AJS 2/12/2013 -- NOTE!: This only calculates every 100 time-steps,
+			//	so for smaller problems, _Wcoh100[2] is never updated, the column
+			//	of data is all zero and gnuplot won't plot it!
 
-		if (_Nt % 100 == 0) {
-			double old = _Wcoh100[2];
-			_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
-			_Wcoh100[1] = _T;
-			if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
-				_Wcoh100[3] = _T;				//set time deriv if ema goes negative
-			} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
-				_Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
-		 	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
-			   // _stopFlag = true;			//stop based on d(EMA(tangents(Wcoh))),after 3x
+			if (_Nt % 100 == 0) {
+				double old = _Wcoh100[2];
+				_Wcoh100[2] = _Wcoh100[2] * 0.9 + 0.1 * (_Wcoh[0] - _Wcoh100[0])/(_T - _Wcoh100[1]); //new ema value 
+				_Wcoh100[1] = _T;
+				if ((_Wcoh100[2] - old < 0) && (_Wcoh100[3] == 0)) {
+					_Wcoh100[3] = _T;				//set time deriv if ema goes negative
+				} else if ((_Wcoh100[3] != 0.0) && (_Wcoh100[2] - old > 0)) {
+					_Wcoh100[3] = 0.0;				//reset time if deriv of ema goes positive
+			 	} else if ((_dWcoh[4] != 0.0) && (_T > 3.0 * _dWcoh[4])) {
+				   // _stopFlag = true;			//stop based on d(EMA(tangents(Wcoh))),after 3x
+				}
 			}
 		}
-	}
 
-	MPI::COMM_WORLD.Bcast( &_stopFlag, 1, MPI::BOOL, 0);
+		MPI::COMM_WORLD.Bcast( &_stopFlag, 1, MPI::BOOL, 0);
+	}
 
     //Adjust for constant  strain rate --calculate _VelForcReq needed to maintain const SR
     if ( _ConstSRFlag == 1 ) {

@@ -76,14 +76,15 @@ int main () {
     ring.plotEnergies();
     ring.plotFrags();
     ring.plotSTheta();
-    ring.defectLimit(0.02);
+    ring.defectLimit(0.005);
 
 
 
     double totalTime = 5.0e-06;
     unsigned printFreq = 1;
     double refine = 0.2;
-	ring.solve( totalTime, printFreq, refine );
+	bool allowPlateauEnd = true;
+	ring.solve( totalTime, printFreq, refine, allowPlateauEnd );
     ring.printHisto();
 
 	double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax; double WsprD;
