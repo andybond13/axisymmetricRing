@@ -1136,6 +1136,8 @@ double CartRing::extForc ( const unsigned nodNum ) {
 
     if ( _NodForcBC[0] == 2 ) {
         // Linear radial force (goal: constant velocity)
+		cout << "*** NOT PROGRAMMED. CONSTANT STRAIN RATE ATTAINED BY CORRECTIVE LOADING" << endl;
+		assert(1==0);
 	//*** NOT PROGRAMMED. CONSTANT STRAIN RATE ATTAINED BY CORRECTIVE LOADING
 	//	SEE applyVel(velDir,velVal) and calcVelFor(i)
     }
