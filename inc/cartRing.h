@@ -574,6 +574,8 @@ private:
 		  _fMin : fragment minimum length
 		  _fStDev : fragment length std. deviation (Rayleigh)
 		  _fRange : fragment length range
+		  _fSkew : fragment length skew
+		  _fExKurtosis : fragment length excess kurtosis
 		  _fHisto : array of histogram bins, by 10%'s.
 		  _fragInvCDF : inverse cdf, size vs. count (fragsize>size)
     */
@@ -588,6 +590,8 @@ private:
     double _fMin;
     double _fStDev;
     double _fRange;
+    double _fSkew;
+    double _fExKurtosis;
     std::vector<unsigned> _fHisto;
     std::vector<std::vector<double> > _fragInvCDF;
 

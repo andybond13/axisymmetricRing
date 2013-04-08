@@ -1398,6 +1398,8 @@ void CartRing::fragCount () {
 		_fMin = 0;
 		_fStDev = 0;
 		_fRange = 0;
+		_fSkew = 0;
+		_fExKurtosis = 0;
 
 		//If there are any fragments...
 		if (_numFrag > 0){
@@ -1432,6 +1434,21 @@ void CartRing::fragCount () {
 				_fStDev += pow( (_fragLength[k] - _fMean), 2);
 			}
 			_fStDev = sqrt( _fStDev / _numFrag ) ;
+
+			//Calculate Skew
+			for (unsigned k = 0; k < _fragLength.size(); k++){
+				//Sum of squared (lengths - means)
+				_fSkew += pow( (_fragLength[k] - _fMean), 3);
+			}
+			_fSkew = _fSkew / (_numFrag * pow(_fStDev,3) );
+
+			//Calculate Kurtosis
+			for (unsigned k = 0; k < _fragLength.size(); k++){
+				//Sum of squared (lengths - means)
+				_fExKurtosis += pow( (_fragLength[k] - _fMean), 4);
+			}
+			_fExKurtosis = _fExKurtosis / (_numFrag * pow(_fStDev,4) ) - 3.0;
+
 		}
 	}
 }
@@ -2234,7 +2251,7 @@ void CartRing::plotFrags (){
     fprintf( pFile, " -- MH [DCML] (2010)\n" );
     fprintf( pFile, "# Fragmentation Information\n" );
     fprintf( pFile, "#       time      #frags   DamageSum        Mean      Median         Max         Min");
-    fprintf( pFile, "       StDev       Range        SigL        SigR      SigL*R        SigC");
+    fprintf( pFile, "       StDev       Range        Skew    Ex. Kurt.       SigL        SigR      SigL*R        SigC");
     fprintf( pFile, "((R*L^2)/|L|) (Locations)\n");
     fclose( pFile );
 }
@@ -2562,6 +2579,8 @@ void CartRing::printFrags () const {
 	fprintf( pFile, "%12.3e", _fMin );
 	fprintf( pFile, "%12.3e", _fStDev );
 	fprintf( pFile, "%12.3e", _fRange );
+	fprintf( pFile, "%12.3f", _fSkew );
+	fprintf( pFile, "%12.3f", _fExKurtosis );
 	double SigR = _Stress[cohNum];
 	double SigL = _Stress[ ((cohNum+1) % _Nx) ];
 	double SigC = _sigCoh[cohNum];
