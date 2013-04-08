@@ -1431,11 +1431,7 @@ void CartRing::fragCount () {
 				//Sum of squared (lengths - means)
 				_fStDev += pow( (_fragLength[k] - _fMean), 2);
 			}
-			if (_numFrag > 1) {
-				_fStDev = sqrt( _fStDev / (_numFrag - 1) ) ;
-			} else {
-				_fStDev = sqrt( _fStDev );
-			}
+			_fStDev = sqrt( _fStDev / _numFrag ) ;
 		}
 	}
 }
