@@ -51,13 +51,13 @@ for f in filelist:
     os.remove("results/automatedRuns/" + f)
 
 # Compile Program
-#call(["make","clean"])
+call(["make","clean"])
 call(["make"])
 
 # Initialize run series information
 #start = time.clock()
 startT = time.time()
-n = 2
+n = 10
 series = ""
 p = 4
 
