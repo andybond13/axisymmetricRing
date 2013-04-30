@@ -2,11 +2,12 @@ CPP       = mpic++
 CPP_FLAGS = -O3 -Wall -fPIC -m64 -g
 SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/
-LIBS = -lboost_system -lboost_filesystem
+LIBS = -lboost_system -lboost_filesystem -L $(BOOST_ROOT)stage/lib/
+
 #CTL       = $(SOFTWARE)/utils/ctl
 #CTLINC    = $(CTL)/include
 #CTLLIB    = $(CTL)/lib/libctl_g++Linuxx86_64/libctl.so
-INCS      = -I./inc -I$(BOOST_ROOT) #-I./ci -I$(CTLINC) -I$(SOFTWARE)/utils 
+INCS      = -I./inc -I$(BOOST_ROOT) -I./ci -I$(CTLINC) -I$(SOFTWARE)/utilities 
 SRC       = ./src/
 OBJ       = ./bin/
 OBJMAIN   = $(OBJ)
