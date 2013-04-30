@@ -10,7 +10,8 @@ import os
 
 # Define tail function which will return the last 'window' lines
 def tail( fh, window=1 ):
-	with open(fh, 'r') as f: 
+	f = open(fh, 'r')
+	try: 
 		BUFSIZ = 1024
 		f.seek(0, 2)
 		bytes = f.tell()
@@ -33,6 +34,8 @@ def tail( fh, window=1 ):
 		    bytes -= BUFSIZ
 		    block -= 1
 		return '\n'.join(''.join(data).splitlines()[-window:])
+	finally:
+		f.close()
 
 
 # --------------------------------
@@ -40,6 +43,7 @@ def tail( fh, window=1 ):
 
 # Get to the right place
 base = "/Users/andrewstershic/Code/axisymmetricRing/"
+base = "/home/ajs84/Code/axisymmetricRing/"
 call(["clear"])
 os.chdir(base)
 
