@@ -42,8 +42,9 @@ def tail( fh, window=1 ):
 # Main function
 
 # Get to the right place
-base = "/Users/andrewstershic/Code/axisymmetricRing/"
-base = "/home/ajs84/Code/axisymmetricRing/"
+#base = "/Users/andrewstershic/Code/axisymmetricRing/"
+#base = "/home/ajs84/Code/axisymmetricRing/"
+base = os.getcwd()
 call(["clear"])
 os.chdir(base)
 
