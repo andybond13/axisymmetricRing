@@ -439,7 +439,7 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 	}
 
 	//end parallel run
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_WsprD, &_WsprD, 1, MPI::DOUBLE, MPI_SUM);
+	MPI::COMM_WORLD.Barrier(); MPI::COMM_WORLD.Allreduce ( &_WsprD, &_WsprD, 1, MPI::DOUBLE, MPI_SUM);
 	MPI::Finalize(); 
 
 }
@@ -847,7 +847,9 @@ void CartRing::NewmarkReso () {
 		MPI::COMM_WORLD.Barrier();
 	}
 
-	COMM_WORLD.Allreduce ( &_Wcoh[0], &_Wcoh[0], 2, MPI::DOUBLE, MPI_SUM);
+	vector<double> wcohlocal(2);
+	MPI::COMM_WORLD.Allreduce ( &_Wcoh[0], &wcohlocal[0], 2, MPI::DOUBLE, MPI_SUM);
+	_Wcoh[0] = wcohlocal[0]; _Wcoh[1] = wcohlocal[1];
 
     //Calculate moving averages for plateau location, continuously
 	if (_allowPlateauEnd) {
