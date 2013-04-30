@@ -62,9 +62,12 @@ call(["make"])
 # Initialize run series information
 #start = time.clock()
 startT = time.time()
-n = 10
+# run <n> independent problems
+n = 100
+# label the run series, default ""
 series = ""
-p = 4
+# spread the load over <p> processors
+p = 8
 
 # Run the series
 for x in range(n):
