@@ -2,18 +2,27 @@ CPP       = mpic++
 CPP_FLAGS = -O3 -Wall -fPIC -m64 -g
 SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/
-LIBS = -lboost_system -lboost_filesystem -L $(BOOST_ROOT)stage/lib/
+LIBS = -lboost_system -lboost_filesystem
 
 #CTL       = $(SOFTWARE)/utils/ctl
 #CTLINC    = $(CTL)/include
 #CTLLIB    = $(CTL)/lib/libctl_g++Linuxx86_64/libctl.so
-INCS      = -I./inc -I$(BOOST_ROOT) -I./ci -I$(CTLINC) -I$(SOFTWARE)/utilities 
+INCS      = -I./inc
 SRC       = ./src/
 OBJ       = ./bin/
 OBJMAIN   = $(OBJ)
 OBJSERV   = $(OBJ)/service/
 OBJCLIE   = $(OBJ)/client/
 TEST      = ./test/
+
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+	LIBS += -L $(BOOST_ROOT)stage/lib/
+	INCS += -I$(BOOST_ROOT) -I./ci -I$(CTLINC) -I$(SOFTWARE)/utilities 
+endif
+ifeq ($(UNAME), OSX)
+	# do something OSX-y
+endif
 
 #all    : main.exe service client.exe
 #service: $(OBJSERV)connectCR.o $(OBJSERV)connectMPG.o $(OBJSERV)libCartRing.so $(OBJSERV)libMatPropGen.so $(OBJSERV)CartRing.exe $(OBJSERV)MatPropGen.exe
@@ -33,7 +42,7 @@ $(OBJMAIN)MatPropGen.o: $(SRC)matPropGen.C
 	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)matPropGen.C -o $(OBJMAIN)MatPropGen.o
 
 $(OBJMAIN)ParallelCombiner.o: $(SRC)parallelCombiner.C
-	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)parallelCombiner.C -o $(OBJMAIN)ParallelCombiner.o $(LIBS)
+	$(CPP) $(CPP_FLAGS) -c $(INCS) $(SRC)parallelCombiner.C -o $(OBJMAIN)ParallelCombiner.o
 
 
 # Compilation of the componant as a shared library and a remote executables
