@@ -63,11 +63,17 @@ call(["make"])
 #start = time.clock()
 startT = time.time()
 # run <n> independent problems
-n = 100
+n = 1
 # label the run series, default ""
 series = ""
 # spread the load over <p> processors
 p = 8
+
+print ""
+print "---------------------------------------------"
+print "**************BEGIN EXECUTION****************"
+print "---------------------------------------------"
+print ""
 
 # Run the series
 for x in range(n):
@@ -101,6 +107,13 @@ for x in range(n):
 	line = line.split()
 	min_frag_size += float(line[6])/n
 	num_frags += float(line[1])/n
+	
+print ""
+print "---------------------------------------------"
+print "***************END EXECUTION*****************"
+print "---------------------------------------------"
+print ""
+
 
 print 'Average minimum fragment size = ', min_frag_size
 print 'Average number of fragments = ', num_frags
