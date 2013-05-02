@@ -56,17 +56,15 @@ for f in filelist:
     os.remove("results/automatedRuns/" + f)
 
 # Compile Program
-call(["make","clean"])
-call(["make"])
+#call(["make","clean"])
+#call(["make"])
 
 # Initialize run series information
-#start = time.clock()
-startT = time.time()
-# run <n> independent problems
+# run <n> independent problems per node
 n = 1
 # label the run series, default ""
-series = ""
-# spread the load over <p> processors
+series = "f1"
+# spread the load over <p> processors, max = 8
 p = 8
 
 print ""
@@ -74,6 +72,10 @@ print "---------------------------------------------"
 print "**************BEGIN EXECUTION****************"
 print "---------------------------------------------"
 print ""
+	
+# Start the timer	
+#start = time.clock()
+startT = time.time()
 
 # Run the series
 for x in range(n):
@@ -97,11 +99,12 @@ print ""
 #print "Average run-time = ",elapsed/n, " seconds"
 print "Average run-time = ",elapsedT/n, " seconds"
 
+
 # Need to collect and average data
 min_frag_size = 0
 num_frags = 0
 for x in range(n):
-	f = "results/automatedRuns/fraginfo-" + str(x) + ".dat"
+	f = "results/automatedRuns/" + series + "fraginfo-" + str(x) + ".dat"
 #	f = os.popen("results/automatedRuns/fraginfo-" + str(x) + ".dat")
 	line = tail(f,1)
 	line = line.split()
@@ -114,13 +117,5 @@ print "***************END EXECUTION*****************"
 print "---------------------------------------------"
 print ""
 
-
 print 'Average minimum fragment size = ', min_frag_size
 print 'Average number of fragments = ', num_frags
-
-# ...
-# minimum fragment size
-# size distribution data - average the histogram bins
-# cohesive energy 
-# fragment count
-
