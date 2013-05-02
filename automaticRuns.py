@@ -99,9 +99,17 @@ print ""
 #print "Average run-time = ",elapsed/n, " seconds"
 print "Average run-time = ",elapsedT/n, " seconds"
 
+print ""
+print "---------------------------------------------"
+print "***************END EXECUTION*****************"
+print "---------------------------------------------"
+print ""
+
+# Data Collection and averaging
 
 # Need to collect and average data
 min_frag_size = 0
+mean_frag_size = 0;
 num_frags = 0
 for x in range(n):
 	f = "results/automatedRuns/" + series + "fraginfo-" + str(x) + ".dat"
@@ -109,13 +117,33 @@ for x in range(n):
 	line = tail(f,1)
 	line = line.split()
 	min_frag_size += float(line[6])/n
+	mean_frag_size += float(line[3])/n
 	num_frags += float(line[1])/n
-	
-print ""
-print "---------------------------------------------"
-print "***************END EXECUTION*****************"
-print "---------------------------------------------"
-print ""
+
+fragLengths = []
+for x in range(n):
+	f = "results/automatedRuns/" + series + "fraghisto-" + str(x) + ".dat"
+	fh = open(f)
+	lines = fh.readlines()
+	fh.close()
+
+	foundSizes = False
+	while ((foundSizes == False) and (len(lines) > 0)):
+		if "Sizes:" in lines[0]:
+			foundSizes = True
+			lines.pop(0)
+		else:
+			lines.pop(0)
+
+	for y in lines:	
+		fragLengths.append(y.rstrip())
+
+fragfile = open("results/automatedRuns/" + series + "allFragmentLengths.dat", 'w')
+for item in fragLengths:
+	print>>fragfile, item
+fragfile.close()
+
 
 print 'Average minimum fragment size = ', min_frag_size
+print 'Average mean fragment size = ', mean_frag_size
 print 'Average number of fragments = ', num_frags

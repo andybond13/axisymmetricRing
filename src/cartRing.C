@@ -565,6 +565,14 @@ void CartRing::printHisto() {
 				}
 				fprintf( pFile, "\n" );
 			}
+
+
+			//print raw fragment sizes to file
+			fprintf( pFile, "Sizes: \n" );
+			for (unsigned k = 0; k < _fragLength.size(); k++){
+				fprintf( pFile, "%12.3e \n", _fragLength[k] );
+			}
+
 			fclose( pFile );
 		}
     }
@@ -2638,6 +2646,7 @@ void CartRing::printClean () const {
     fprintf( pFile, "cd %s\n\n", _path.c_str() );
     fprintf( pFile, "# Remove the data files\n" );
     fprintf( pFile, "cd ./datFiles/; rm *.dat; cd -\n\n" );
+    fprintf( pFile, "cd ./automatedRuns/; rm *.dat; cd -\n\n" );
     fprintf( pFile, "# Remove the gnuplot files\n" );
     fprintf( pFile, "cd ./gnuplot/ ; rm *.plt; cd -\n\n" );
     fprintf( pFile, "# Remove the png/svg files\n" );
