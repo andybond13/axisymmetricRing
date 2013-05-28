@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
@@ -101,7 +102,10 @@ CartRing::CartRing ( const double length, const double crossSec,
 		} else {
 		    // clean the directory tree
 		    std::string shellCmd = _path+"/clean.sh";
-		    //int status = system( shellCmd.c_str() );
+
+			//make sure clean.sh exists
+			fstream myFile(shellCmd.c_str());
+			if (!myFile.good()) printClean();
 			system( shellCmd.c_str() );
 		}
 		//Print logfile title block
