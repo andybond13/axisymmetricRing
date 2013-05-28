@@ -56,6 +56,7 @@ CartRing::CartRing ( const double length, const double crossSec,
     _R0 = _L/(2*PI);
     _c = sqrt( _E / _rho );
     _path = path;
+	_defectRange = 0.0;
 
 	//domain decomposition
 	domainDecomposition();	
@@ -1355,8 +1356,11 @@ void CartRing::checkStable () {
     } else {
 		_tFlag[1] += 1;		//Add one
     }
-
-	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &_tFlag[1], &_tFlag[1], 1, MPI::INT, MPI_MAX);
+	
+	unsigned valIn = _tFlag[1];
+	unsigned valOut = 0;
+	MPI::COMM_WORLD.Barrier(); COMM_WORLD.Allreduce ( &valIn, &valOut, 1, MPI::INT, MPI_MAX);
+	_tFlag[1] = valOut;
 
 }
 
@@ -1950,7 +1954,10 @@ void CartRing::exchangeFragInfo() {
 	}
 
 	MPI::COMM_WORLD.Bcast( &_fragLoc[0], _numFrag, MPI::INT, 0);
-	MPI::COMM_WORLD.Allreduce ( &_DSum, &_DSum, 1, MPI::DOUBLE, MPI_SUM);
+	double valIn = _DSum;
+	double valOut = 0.0;
+	MPI::COMM_WORLD.Allreduce ( &valIn, &valOut, 1, MPI::DOUBLE, MPI_SUM);
+	_DSum = valOut;
 
 	return;
 }

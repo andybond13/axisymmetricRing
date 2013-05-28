@@ -88,7 +88,7 @@ int main () {
 	ring.solve( totalTime, printFreq, refine, allowPlateauEnd, checkEnergy );
     ring.printHisto();
 
-	double runTime; unsigned numFrag; unsigned nIter; double Wcoh0; double Wsum; double Wmax; double WsprD;
+	double runTime = 0.0; unsigned numFrag = 32768; unsigned nIter = 0; double Wcoh0; double Wsum; double Wmax; double WsprD;
 	std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
 	std::vector<std::vector<double> >fragInvCDF;
 	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
