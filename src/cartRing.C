@@ -56,7 +56,7 @@ CartRing::CartRing ( const double length, const double crossSec,
     _R0 = _L/(2*PI);
     _c = sqrt( _E / _rho );
     _path = path;
-	_defectRange = 0.0;
+	_defectRange = -1.0;
 
 	//domain decomposition
 	domainDecomposition();	
@@ -367,8 +367,8 @@ void CartRing::solve ( const double endTime, const unsigned printFrequency, cons
 
         // Explicit Newmark
         MPI::COMM_WORLD.Barrier(); NewmarkPred();
-        	MPI::COMM_WORLD.Barrier(); NewmarkReso();
-        	MPI::COMM_WORLD.Barrier(); NewmarkCorr();
+        MPI::COMM_WORLD.Barrier(); NewmarkReso();
+        MPI::COMM_WORLD.Barrier(); NewmarkCorr();
 
 		//Check stability and decide on adaptive time-stepping
 	 	checkStable();
@@ -837,22 +837,37 @@ void CartRing::NewmarkReso () {
     // Build the cohesive force vector, and cohesive-link energy values
     _Wcoh[0] = 0.0;
     _Wcoh[1] = 0.0;
-	for (int j = 0; j < _numprocs; ++j) {
-		int size;
-		int begin;
-		if (j == _myid) {
-			size = _end - _begin + 1;
-			begin = _begin;
-			for ( unsigned i = _begin; i <= _end; i++ ) {
-				std::vector<double> wCoh = cohForc( i );
-				_Wcoh[0] += wCoh[0];
-				_Wcoh[1] += wCoh[1];
+
+	//if defectRange exists, must update sequentially to be consistent with serial case (assume this is necessary)
+	if (_defectRange > 0) {
+		for (int j = 0; j < _numprocs; ++j) {
+			int size;
+			int begin;
+			if (j == _myid) {
+				size = _end - _begin + 1;
+				begin = _begin;
+				for ( unsigned i = _begin; i <= _end; i++ ) {
+					std::vector<double> wCoh = cohForc( i );
+					_Wcoh[0] += wCoh[0];
+					_Wcoh[1] += wCoh[1];
+				}
 			}
+
+			std::vector<int> local_ActivCoh = _ActivCoh;
+			MPI::COMM_WORLD.Allreduce( &_ActivCoh[0], &local_ActivCoh[0], _Nx, MPI::INT, MPI_SUM);
+			MPI::COMM_WORLD.Barrier();
 		}
-		MPI::COMM_WORLD.Bcast( &size, 1, MPI::INT, j);
-		MPI::COMM_WORLD.Bcast( &begin, 1, MPI::INT, j);
-		MPI::COMM_WORLD.Barrier();
-		MPI::COMM_WORLD.Bcast( &_ActivCoh[begin], size, MPI::INT, j);
+	} else {
+		//int size = _end - _begin + 1;
+		//int begin = _begin;
+		for ( unsigned i = _begin; i <= _end; i++ ) {
+			std::vector<double> wCoh = cohForc( i );
+			_Wcoh[0] += wCoh[0];
+			_Wcoh[1] += wCoh[1];
+		}
+
+		std::vector<int> local_ActivCoh = _ActivCoh;
+		MPI::COMM_WORLD.Allreduce( &_ActivCoh[0], &local_ActivCoh[0], _Nx, MPI::INT, MPI_SUM);
 		MPI::COMM_WORLD.Barrier();
 	}
 
@@ -941,7 +956,7 @@ void CartRing::NewmarkCorr () {
         _Vel[i][2][1] = _Vel[i][1][1] + 0.5 * _Dt * _Acc[i][1][1];
 
         // Compute the kinematic energy
-        _Wkin += 0.5 * _m * ( pow( _Vel[i][2][0], 2 ) + pow( _Vel[i][2][1], 2 ) );			//TODO: sum the local versions up and broadcast
+        _Wkin += 0.5 * _m * ( pow( _Vel[i][2][0], 2 ) + pow( _Vel[i][2][1], 2 ) );
  
         // Displacements
         _Dis[i][2][0] = _Dis[i][1][0];
@@ -1031,7 +1046,7 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
 			}
 			//Allow link to open if all other links in range are closed, & stress>strength
 		    if ( ( _sigCoh[cohNum] > _SigC[cohNum] ) && (defectRangeFlag == false) ) {
-		    		_ActivCoh[cohNum] = true;
+		    	_ActivCoh[cohNum] = true;
 				//Limit stress to maximum value(strength) for this one time-step
 		        _Fcoh[nod_1][0] = -1.0 * _A * _SigC[cohNum] 
 		                            * sinThetaPred( nod_1 );
@@ -1196,52 +1211,52 @@ double CartRing::stress ( const unsigned sprNum ) {
     //Allow decreased stiffness in zones where link opening is prohibited
     // Check to see if this element's links are in the range prohibited from opening
     if (_defectRange > 0) {
-	bool defectRangeFlag = false;	//for one cohesive link
-	bool defectRangeFlag2 = false;	//for the other
+		bool defectRangeFlag = false;	//for one cohesive link
+		bool defectRangeFlag2 = false;	//for the other
         int d_num = (int)floor( _defectRange * (double)(_Nx) / _L) ;	//convert the range to # of links
         for (int i = -d_num; i <= d_num; i++) {
             int j = ( i + (int)(sprNum) + _Nx) % _Nx;	//center the range at this element and check
-	    if (_ActivCoh[j] == true) { 
-		defectRangeFlag = true;		//true if any links within range are open
-	    }
-            int k = ( i + (int)(sprNum-1) + _Nx) % _Nx;
-	    if (_ActivCoh[k] == true) { 
-		defectRangeFlag2 = true;		//true if any links within range are open
-	    }
-	}
-
-	//Non-hardening damage model; if both links are forced shut
-	if ((defectRangeFlag == true) && (defectRangeFlag2 == true) && (strain > 0)) {
-
-	    //Determine average strength value of cohesive links ->yield strength of element
-	    double sigY = 0.5 * _SigC[sprNum] + 0.5 * _SigC[ (sprNum - 1 + _Nx) % _Nx];
-
-	    if (_sprDamage[sprNum] == 0.0) {
-		//No previous damage
-		if (strain <= sigY/_E) {
-		    //Unloading/reloading along E line (elastic)
-		    Stress = _E * strain;
-		    _sprDamage[sprNum] = 0;
-		} else {
-		    //Along sigmaC line, updating damage (damaged)
-		    Stress = sigY;			//maximum stress allowed
-		    double E_Hat = sigY / strain;	//tangent line to new point
-		    _sprDamage[sprNum] = 1.0 - (E_Hat / _E);	//calculate damage
+			if (_ActivCoh[j] == true) { 
+				defectRangeFlag = true;		//true if any links within range are open
+			}
+			int k = ( i + (int)(sprNum-1) + _Nx) % _Nx;
+			if (_ActivCoh[k] == true) { 
+				defectRangeFlag2 = true;		//true if any links within range are open
+	    	}
 		}
-	    } else {
-		//Previously damaged
-		double strainD = sigY / (_E * (1 - _sprDamage[sprNum])); // max strain ever experienced
-		if (strain <= strainD) {
-		    //Unloading/reloading along E_Hat line, no additional damage
-		    Stress = strain * _E * (1 - _sprDamage[sprNum]);
-		} else {
-		    //Along sigmaC line, further damage
-		    Stress = sigY;
-		    double E_Hat = sigY / strain;
-		    _sprDamage[sprNum] = 1.0 - (E_Hat / _E);
+	
+		//Non-hardening damage model; if both links are forced shut
+		if ((defectRangeFlag == true) && (defectRangeFlag2 == true) && (strain > 0)) {
+	
+			//Determine average strength value of cohesive links ->yield strength of element
+			double sigY = 0.5 * _SigC[sprNum] + 0.5 * _SigC[ (sprNum - 1 + _Nx) % _Nx];
+	
+			if (_sprDamage[sprNum] == 0.0) {
+				//No previous damage
+				if (strain <= sigY/_E) {
+					//Unloading/reloading along E line (elastic)
+					Stress = _E * strain;
+					_sprDamage[sprNum] = 0;
+				} else {
+					//Along sigmaC line, updating damage (damaged)
+					Stress = sigY;			//maximum stress allowed
+					double E_Hat = sigY / strain;	//tangent line to new point
+					_sprDamage[sprNum] = 1.0 - (E_Hat / _E);	//calculate damage
+				}
+			} else {
+				//Previously damaged
+				double strainD = sigY / (_E * (1 - _sprDamage[sprNum])); // max strain ever experienced
+				if (strain <= strainD) {
+					//Unloading/reloading along E_Hat line, no additional damage
+					Stress = strain * _E * (1 - _sprDamage[sprNum]);
+				} else {
+					//Along sigmaC line, further damage
+					Stress = sigY;
+					double E_Hat = sigY / strain;
+					_sprDamage[sprNum] = 1.0 - (E_Hat / _E);
+				}
+			}
 		}
-	    }
-	}
     }
 
     return Stress;
@@ -2116,11 +2131,11 @@ void CartRing::plotEnergies () {
     fprintf( pFileW, "set ylabel \"energy (J)\"\n" );
     fprintf( pFileW, "set terminal svg size 1200, 800\n\n" );
     fprintf( pFileW, "set output './pngFiles/enrgSpr.svg'\n");
-    if (_defectRange == 0.0) {
-	fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:2 ti 'Wspr' w l\n" );
+    if (_defectRange == -1.0) {			//not sure why this is here
+		fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:2 ti 'Wspr' w l\n" );
     } else {
-	fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:2 ti 'WsprE' w l ,\\\n" );
-	fprintf( pFileW, "     './datFiles/energies.dat' usi 1:14 ti 'WsprD' w l\n" );
+		fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:2 ti 'WsprE' w l ,\\\n" );
+		fprintf( pFileW, "     './datFiles/energies.dat' usi 1:14 ti 'WsprD' w l\n" );
     }
     fprintf( pFileW, "set output './pngFiles/enrgCoh.svg'\n");
     fprintf( pFileW, "plot './datFiles/energies.dat' usi 1:3 ti 'WcoD' w l ,\\\n" );
