@@ -20,17 +20,18 @@
 
 using namespace std;
 
-int main () {
+int main (int argc, char* argv[]) {
 
     // ring specification
     double L   = .05;   // in m
     double A   = 1.0e-6;   // in m^2
     double rho = 2.75e+3;  // in kg/m3
     double E   = 2.75e+11; // in Pa
-    int nx     = 50;
-//    std::string path = "/home/ajs84/Software/cartRing/results";
+    int nx     = 1000;
+std::string path = "/tmp/results";
+    std::string multiResultsPath = "/home/ajs84/Code/axisymmetricRing/results";
 //    std::string path = "~/andrew/Duke/results";
-	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
+//	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
 
     CartRing ring( L, A, rho, E, nx, path );
 
@@ -63,7 +64,7 @@ int main () {
     ring.plotCohLaw( cohNums );
     
 
-    ring.display( 10, 10 );
+    ring.display( 10, 10 );//vtk files
 
     unsigned nodes[] = { 0, 1 };
     std::vector<unsigned> node2plot ( nodes, nodes+2 );
@@ -76,7 +77,7 @@ int main () {
     ring.plotEnergies();
     ring.plotFrags();
     ring.plotSTheta();
-    ring.defectLimit(0.005);
+    ring.defectLimit(0.000);
 
 
 
@@ -92,9 +93,20 @@ int main () {
 	std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
 	std::vector<std::vector<double> >fragInvCDF;
 	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
-	if (runTime > 0 && numFrag < 32767 && nIter>0) {	//should eliminate _myid >0
-		std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
-		ParallelCombiner pc; pc.run(1,path,nx,true);
+
+	if (/*runTime > 0.0 && numFrag < 32767 && */nIter>0) {	//should eliminate _myid >0
+		//std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
+
+		if (argc > 1) {
+			//collect results off compute nodes before combining
+			string command = "python distributedCollector.py " + path + " " + multiResultsPath + " ";
+			for (int i = 1; i < argc; ++i) {
+				command += (string)argv[i] + " ";
+			}
+			system( command.c_str() );
+		}
+
+		ParallelCombiner pc; pc.run(1,multiResultsPath,nx,true);
 	}
     return 0;
 }

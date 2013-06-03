@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "alphanum.h"
 
 using namespace std;
 using namespace boost::filesystem; 
@@ -37,7 +38,7 @@ ParallelCombiner::~ParallelCombiner ()  {}
 void ParallelCombiner::run(const int procs, const std::string resultsPath, int Nx, bool deleteFlag) {
 
 	/*
-	 CURRENTLY COMBINES VTK AND cohLaw.dat FILES ONLY!!!	
+	 CURRENTLY COMBINES VTK AND cohLaw.dat AND stressTheta.dat FILES ONLY!!!	
 	*/
 
 	string vtkPath = resultsPath + "/vtkFiles/";
@@ -96,6 +97,8 @@ void ParallelCombiner::findSets(string inPath) {
 		//cout << (exists(p) ? "Found: " : "Not found: ") << p << endl;
 	}
 
+	std::sort(allFiles.begin(), allFiles.end(), doj::alphanum_less<std::string>());
+
 	//sort into sets
 	_fileSet.resize(0);
 	for (unsigned i = 0; i < allFiles.size()-1; ++i) {
@@ -133,6 +136,9 @@ void ParallelCombiner::combineSet(std::vector<std::string> inSet, int nx) {
 	assert(exists(inSet[0]));
 	ofstream outFile;
 	string outFileName = inSet[0].substr(0,inSet[0].length()-4) + "_multi.vtk";
+
+	std::sort(inSet.begin(), inSet.end(),doj::alphanum_less<std::string>());
+
 	outFile.open(outFileName.c_str());	
 
 	//open all files in set

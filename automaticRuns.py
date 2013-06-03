@@ -36,6 +36,13 @@ def tail( fh, window=1 ):
 		return '\n'.join(''.join(data).splitlines()[-window:])
 	finally:
 		f.close()
+		
+def clearMultiHost(hostList,base):
+	for host in hostList:
+		command2 = "ssh " + host + " " + base + "/./clean.sh"
+		command3 = "ssh " + host + " rm " + base + "/*.log"
+		os.system(command2)
+		os.system(command3)
 
 
 # --------------------------------
@@ -63,9 +70,13 @@ for f in filelist:
 # run <n> independent problems per node
 n = 1
 # label the run series, default ""
-series = "f1"
-# spread the load over <p> processors, max = 8
+series = ""
+# spread the load over <p> processors per node, max = 8
 p = 8
+# run on <m> nodes, max = 16. Total number of processors = <m*p>
+m = 10
+hostList = ["f1","f2","f3","f4","f5","f6","f7","f8","f9","f10"]
+assert(len(hostList) == m)
 
 print ""
 print "---------------------------------------------"
@@ -84,7 +95,17 @@ for x in range(n):
 	if (p == 1):
 		call(["./bin/main.exe"])
 	else:
-		call(["mpirun","-np",str(p),"./bin/main.exe"])
+		
+		clearMultiHost(hostList,"/tmp/results")
+		
+		hostStr = ""
+		hostStr2 = ""
+		for host in hostList:
+			hostStr += host + " "
+			hostStr2 += host + ","
+		hostStr2 = hostStr2[0:-1]
+		os.system("mpirun -H " + hostStr2 + " -np " + str(m*p) + " ./bin/main.exe " +  hostStr)
+		#call(["mpirun","-np",str(p),"./bin/main.exe " + hostList])
 	filelist = [ f for f in os.listdir("results/datFiles") if f.endswith(".dat") ]
 	for f in filelist:
 		f_raw = f.replace(".dat","")

@@ -82,6 +82,10 @@ CartRing::CartRing ( const double length, const double crossSec,
              + convertInt( tinf->tm_hour ) + ":"
              + minutes + "_p" + convertInt(_myid) + ".log";
 
+	// clean the directory tree
+	printClean();
+	std::string shellCmd = _path+"/clean.sh";
+
 	if (_myid == 0) {
 
 		FILE * pFile;
@@ -97,11 +101,12 @@ CartRing::CartRing ( const double length, const double crossSec,
 		    mkdir( gnuPath.c_str(), 0777 );
 		    std::string vtkPath = _path+"/vtkFiles";
 		    mkdir( vtkPath.c_str(), 0777 );
-		    printClean();
+		    //printClean();
 		    pFile = fopen( _logPath.c_str(), "w" );	//reopen
 		} else {
-		    // clean the directory tree
-		    std::string shellCmd = _path+"/clean.sh";
+		    /*// clean the directory tree
+		    printClean();
+		    std::string shellCmd = _path+"/clean.sh";*/
 
 			//make sure clean.sh exists
 			fstream myFile(shellCmd.c_str());
@@ -2662,7 +2667,7 @@ void CartRing::printSTheta () const {
 }
 
 void CartRing::printClean () const {
-	if (_myid > 0) return;
+	//if (_myid > 0) return;
 
     std::string cleanPath = _path+"/clean.sh";
     FILE * pFile;
@@ -2679,7 +2684,7 @@ void CartRing::printClean () const {
     fprintf( pFile, "cd ./pngFiles/; rm *.png; cd -\n\n" );
     fprintf( pFile, "cd ./pngFiles/; rm *.svg; cd -\n\n" );
     fprintf( pFile, "# Remove the vtk files\n" );
-    fprintf( pFile, "cd ./vtkFiles/; rm *.vtk; cd -\n\n" );
+    fprintf( pFile, "cd ./vtkFiles/; find . -name \"*.vtk\" -print0 | xargs -0 rm -f; cd -\n\n" );
     fprintf( pFile, "# Remove plot.sh\n" );
     fprintf( pFile, "rm plot.sh\n" );
     fclose( pFile );
