@@ -636,7 +636,7 @@ void CartRing::defectLimit (const double& defectRange) {
 
 void CartRing::domainDecomposition() {
 
-	_local = vector<bool>(2*_Nx);
+	_local = vector<int>(2*_Nx);				//list of locally-owned nodes (boolean: 1 = local, 0 = not)
 	_owner = vector<int>(2*_Nx);				//list of owner of nodes
 	vector<int> owner = vector<int>(2*_Nx); //list of owner of nodes - local, used to build global one
 	_begin = (_myid*_Nx)/_numprocs;			//first node that this processor owns

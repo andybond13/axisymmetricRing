@@ -399,7 +399,7 @@ private:
     double _E;
     double _R0;
     unsigned _Nx;
-	std::vector<bool> _local;
+	std::vector<int> _local;
 	std::vector<int> _owner;
 	unsigned _begin;
 	unsigned _end;
