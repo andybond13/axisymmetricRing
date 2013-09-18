@@ -184,7 +184,8 @@ CartRing::~CartRing () {
 
 void CartRing::setCohLaw ( const std::string& lawTyp,
                            const std::vector<std::vector<double> >& param ) {
-    //If sigma and delta are specified
+	//assume downward linear / Ortiz form
+    //If sigma (maximum traction) and delta (final opening) are specified
     if ( lawTyp.compare( 0 , 5, "LINSD" ) == 0 ) {
         if ( param.size() >= 2 ) {
             // _SigC
@@ -293,10 +294,10 @@ void CartRing::applyForc ( const std::string& loadTyp,
                   << std::endl;
     }
 
-    if ( loadDir.compare( 0, 5, "RADIA") == 0 ) {	//Assign type and value to NFBC & VFBC[0]
+    if ( loadDir.compare( 0, 5, "RADIA") == 0 ) {	//a radial force - Assign type and value to NFBC & VFBC[0]
         _NodForcBC[0] = type;
         _ValForcBC[0] = loadVal;
-    } else if ( loadDir.compare( 0, 5, "THETA") == 0 ) {	//Assign type and value to NFBC & VFBC[1]
+    } else if ( loadDir.compare( 0, 5, "THETA") == 0 ) {	//a circumferencial force - Assign type and value to NFBC & VFBC[1]
         _NodForcBC[1] = type;
         _ValForcBC[1] = loadVal;
     } else {
@@ -308,10 +309,10 @@ void CartRing::applyVel (  const std::string& velDir, const double velVal  ) {
     //Constant Velocity / Strain Rate Case
     initVel(velDir, velVal);	//initialize velocity, add it to w_ext
     _ConstSRFlag = 1;		//flag that indicates this case - constant target strain rate
-    if ( velDir.compare( 0, 5, "RADIA") == 0 ) {	//Assign direction and value to VVBC
+    if ( velDir.compare( 0, 5, "RADIA") == 0 ) {	//a radial velocity - Assign direction and value to VVBC
         _ValVelBC[0] = 1;
         _ValVelBC[1] = velVal;
-    } else if ( velDir.compare( 0, 5, "THETA") == 0 ) {	//Assign direction and value to VVBC
+    } else if ( velDir.compare( 0, 5, "THETA") == 0 ) {	//a circumferential/rotational velocity - Assign direction and value to VVBC
         _ValVelBC[0] = 2;
         _ValVelBC[1] = velVal;
     } else {
@@ -320,15 +321,15 @@ void CartRing::applyVel (  const std::string& velDir, const double velVal  ) {
 }
 
 void CartRing::initVel ( const std::string& velDir, const double velVal ) {
-    //Determine loading direction
-    if ( velDir.compare( 0, 5, "RADIA") == 0 ) {
+    //Determine loading direction	
+    if ( velDir.compare( 0, 5, "RADIA") == 0 ) {	//a radial velocity
         for ( unsigned i = 0; i < _Vel.size(); i++ ) {
 			if (!_local[i]) continue;
             _Vel[i][0][0] = velVal * cosTheta(i);	//initialize velocity
             _Vel[i][0][1] = velVal * sinTheta(i);
         }
 	//_ValForcBC[0] = velVal;		//????? I do not know why this is here,
-    } else if ( velDir.compare( 0, 5, "THETA") == 0 ) {
+    } else if ( velDir.compare( 0, 5, "THETA") == 0 ) {//a circumferential/rotational velocity
         for ( unsigned i = 0; i < _Vel.size(); i++ ) {
 			if (!_local[i]) continue;
             _Vel[i][0][0] = -1.0 * velVal * sinTheta(i);//initialize velocity
@@ -343,17 +344,19 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
 
 void CartRing::solve ( const double endTime, const unsigned printFrequency, const double refine, const bool allowPlateauEnd, const bool checkEnergy ) {
 
+	//set some global variables
 	_allowPlateauEnd = allowPlateauEnd;
 	_checkEnergy = checkEnergy;
 
 	//synchronize
 	MPI::COMM_WORLD.Barrier();
 
-    // Print stuff
+    // Print stuff to vtk file
     if ( _DisplayFlag ) {
         printVtk( _Nt );
     }
 
+	//begin time-step loop
     while (( _T < endTime ) && (_stopFlag == false)) {
 
 		//synchronize
@@ -465,7 +468,7 @@ void CartRing::printHisto() {
 		_fragInvCDF[1].resize(1000);	//number of fragments larger than this length
 		_fHisto.assign(25, 0);		//number of bins for the fragment histogram
 	
-		//Histogram
+		//Histogram - 25 bins
 		 double max = _fMax;	//size
 		//Step through fragment length list; increase count in the bin if fragment fits
 		for (unsigned k = 0; k < _fragLength.size(); k++){
@@ -634,10 +637,10 @@ void CartRing::defectLimit (const double& defectRange) {
 void CartRing::domainDecomposition() {
 
 	_local = vector<bool>(2*_Nx);
-	_owner = vector<int>(2*_Nx);
-	vector<int> owner = vector<int>(2*_Nx);
-	_begin = (_myid*_Nx)/_numprocs;
-	_end = ((_myid+1)*_Nx)/_numprocs-1;
+	_owner = vector<int>(2*_Nx);				//list of owner of nodes
+	vector<int> owner = vector<int>(2*_Nx); //list of owner of nodes - local, used to build global one
+	_begin = (_myid*_Nx)/_numprocs;			//first node that this processor owns
+	_end = ((_myid+1)*_Nx)/_numprocs-1; 		//last node that this processor owns
 
 	//assign whether the node is to be owned locally or not
 	for (unsigned i = 0; i < 2*_Nx; ++i) {
@@ -671,6 +674,7 @@ std::string CartRing::convertInt(int number) const
         return "0";
     string temp="";
     string returnvalue="";
+	//read from back
     while (number>0)
     {
         temp+=number%10+48;
@@ -684,7 +688,7 @@ std::string CartRing::convertInt(int number) const
 void CartRing::buildDiscretization () {
 
     // Build _NodPos, assign node locations
-    _NodPos.resize( 2*_Nx ); 
+    _NodPos.resize( 2*_Nx ); 		//node locations[node number][x or y]
     _NodPosOrig.resize( 2*_Nx ); 
     for ( unsigned i = 1; i <= _Nx; i++ ) { 
         unsigned k = ( 2*i ) % ( 2*_Nx ); 
@@ -731,7 +735,7 @@ void CartRing::buildDiscretization () {
     _Dt_c = _Dx / _c;
 
     // Resize the kinematics
-    _Dis.resize( _NodPos.size() );
+    _Dis.resize( _NodPos.size() );		//displacement[node #][initial, predict, correct][x or y]
     _Vel.resize( _NodPos.size() );
     _Acc.resize( _NodPos.size() );
     for ( unsigned i = 0; i < _NodPos.size(); i++ ) {
@@ -829,8 +833,8 @@ void CartRing::NewmarkReso () {
 	//Update spring forces on boundary nodes
 	exchangeSprForc();
 
-	if (_allowPlateauEnd) {
-		if(_myid == 0) {																										//correct?
+	if (_allowPlateauEnd) {		//if an early program termination due to a plateauing of cohesive energy is allowed
+		if(_myid == 0) {	
 			//Update and store plateau-locating data
 			if (_Nt % 100 == 0) {		//discrete/martin's method of plateau location; every 100
 				_Wcoh100[0] = _Wcoh[0];
@@ -848,7 +852,7 @@ void CartRing::NewmarkReso () {
     _Wcoh[1] = 0.0;
 
 	//if defectRange exists, must update sequentially to be consistent with serial case (assume this is necessary)
-	if (_defectRange > 0) {
+	if (_defectRange > 0) {		//if there is a zone around each fracture site that prevents other nodes from opening, non-zero
 		for (int j = 0; j < _numprocs; ++j) {
 			int size;
 			int begin;
@@ -867,8 +871,6 @@ void CartRing::NewmarkReso () {
 			MPI::COMM_WORLD.Barrier();
 		}
 	} else {
-		//int size = _end - _begin + 1;
-		//int begin = _begin;
 		for ( unsigned i = _begin; i <= _end; i++ ) {
 			std::vector<double> wCoh = cohForc( i );
 			_Wcoh[0] += wCoh[0];
@@ -886,7 +888,7 @@ void CartRing::NewmarkReso () {
 
     //Calculate moving averages for plateau location, continuously
 	if (_allowPlateauEnd) {
-		if(_myid == 0) {																											//correct?
+		if(_myid == 0) {	
 			double ratio = 0.9995;
 			_dWcoh[0] = _dWcoh[0] * ratio + (1 - ratio) * (_Wcoh[0] - _dWcoh[1]) / _Dt;	//new ema of deriv value
 			_dWcoh[3] = (_dWcoh[0] - _dWcoh[2]) / _Dt;					//derive of ema ... value
@@ -1210,7 +1212,7 @@ double CartRing::stress ( const unsigned sprNum ) {
     // Compute the truss element / the spring current length
     double curLength = sqrt( pow( elmVec[0], 2 ) + pow( elmVec[1], 2 ) );
 
-    // Compute the Crisfield version of the element strain
+    // Compute the Crisfield version of the element strain - equivalent to engineering strain
     double strain = ( pow( curLength, 2 ) - pow( _Dx, 2 ) )
                   / ( _Dx * ( curLength + _Dx ) );
 
@@ -1272,6 +1274,8 @@ double CartRing::stress ( const unsigned sprNum ) {
 }
 
 void CartRing::cohStr ( const unsigned cohNum ) {
+	//this method contains the formula for the downward-sloping, linear cohesive zone law / traction-separation law
+
     //Reset cohesive stress to zero
     _sigCoh[cohNum] = 0;
     if ( _delta[cohNum] > 0.0 ) {

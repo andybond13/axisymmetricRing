@@ -39,6 +39,7 @@ void ParallelCombiner::run(const int procs, const std::string resultsPath, int N
 
 	/*
 	 CURRENTLY COMBINES VTK AND cohLaw.dat AND stressTheta.dat FILES ONLY!!!	
+	 -takes results files from each sub-domain and writes them into one unified file
 	*/
 
 	string vtkPath = resultsPath + "/vtkFiles/";

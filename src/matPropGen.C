@@ -39,43 +39,43 @@ MatPropGen::MatPropGen ( const std::string distrib, const double parameter1,
     _distrib = distrib;
     _nx = nx;
 
-    //GammaKT (unused, k - shape, theta - scale)
+    //Gamma KT - gamma distribution defined by k & theta (unused, k - shape, theta - scale)
     if (distrib == "GammaKT") {
         _k = parameter2;
         _theta = parameter3;
     }
 
-    //GammaAB (unused, alpha - shape, beta - rate)
+    //GammaAB - gamma distribution defined by alpha & beta (unused, alpha - shape, beta - rate)
     if (distrib == "GammaAB") {
         _alpha = parameter2;
         _beta = parameter3;
     }
 
-    //Gamma (mean, variance, unused)
+    //Gamma - gamma distribution defined by mean and variance (mean, variance, unused)
     if (distrib == "Gamma") {
         _mean = parameter1;
         _variance = parameter2;
     }
 
-    //Log-normal (location, scale, unused)
+    //LogNorm - log-normal distribution defined by mean and standard deviation (location, scale, unused)
     if (distrib == "LogNorm") {
         _mean = parameter1;
         _stdev = parameter2;
     }
 
-    //Normal (mean, stdev, unused)
+    //Normal - normal distribution defined by mean and standard deviation (mean, stdev, unused)
     if (distrib == "Normal") {
         _mean = parameter1;
         _stdev = parameter2;
     }
 
-    //Uniform (maximum, minimum, unused)
+    //Uniform - uniform distribution defined by minimum and maximum (maximum, minimum, unused)
     if (distrib == "Uniform") {
         _min = parameter2;
         _max = parameter1;
     }
 
-    //Weibull (lambda - shape, k - scale, unused)
+    //Weibull - Weibull distribution defined by lambda and k (lambda - shape, k - scale, unused)
     if (distrib == "Weibull") {
         _lambda = parameter1;
         _k = parameter2;
@@ -84,8 +84,8 @@ MatPropGen::MatPropGen ( const std::string distrib, const double parameter1,
     //Poisson Process - Weak Points (one-node length) (normal, weak, lambda)
     if (distrib == "Poisson") {
         _lambda = parameter3 / _nx;	//Expected number of failures in ring
-	_normal = parameter1;   //Strength of non-affected regions
-	_weak = parameter2;	//Strength of affected regions
+		_normal = parameter1;   //Strength of non-affected regions
+		_weak = parameter2;	//Strength of affected regions
     }    
 
 }

@@ -261,7 +261,7 @@ private:
 
     //! Compute stress at a given cohesive link
     /*!
-        \brief Method to compute the stress at a given cohesive element
+        \brief Method to compute the stress at a given cohesive element. This contains the cohesive zone law formula.
         \param cohNum given cohesive link
         \return stress value
     */
