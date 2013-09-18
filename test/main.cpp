@@ -23,48 +23,53 @@ using namespace std;
 int main (int argc, char* argv[]) {
 
     // ring specification
-    double L   = .05;   // in m
-    double A   = 1.0e-6;   // in m^2
-    double rho = 2.75e+3;  // in kg/m3
-    double E   = 2.75e+11; // in Pa
-    int nx     = 1000;
 std::string path = "/tmp/results";
     std::string multiResultsPath = "/home/ajs84/Code/axisymmetricRing/results";
+    double L   = .05;   		// circumference, in m
+    double A   = 1.0e-6;   	// cross-sectional area, in m^2
+    double rho = 2.75e+3;  	// density, in kg/m3
+    double E   = 2.75e+11; 	// young's modulus, in Pa
+    int nx     = 10000;		// number of elements
+	
+	//path to results directory
 //    std::string path = "~/andrew/Duke/results";
 //	std::string path = "/Users/andrewstershic/Code/axisymmetricRing/results";
 
+	//create ring object
     CartRing ring( L, A, rho, E, nx, path );
 
+	//apply boundary conditions
 	//ring.applyForc( "CONS", "THETA", 6.0e-1 );
     //ring.initVel( "RADIA", 2.5*1.592e+1 );
     //ring.applyForc( "LINE", "RADIA", 1.592e+1 );
     //ring.applyForc( "CONS", "RADIA", 6.0e-1 );
-    ring.applyVel( "RADIA", 4.5*1.592e+1);
+    ring.applyVel( "RADIA", 4.5*1.592e+1);	//apply radial velocity: 4.5*1.592e+1 m/s -> strain rate = 9000 1/s; v = SR*L/(2*pi)
 
     // cohesive law
     /**/
     std::vector<std::vector<double> > cohPar( 2 );
-    /*cohPar[0].assign( nx, 4.0e+12 ); //4.0e+12
-    cohPar[0][nx-100] = 4.4e+9;
+    /*cohPar[0].assign( nx, 4.0e+12 ); //4.0e+12 (assign all strengths manually)
+    cohPar[0][nx-100] = 4.4e+9; //(with exceptions)
     cohPar[0][nx-125] = 4.37e+9;
     cohPar[0][nx-150] = 4.37e+9;
     cohPar[0][nx-525] = 4.4e+9;*/
 
+	//assign strengths via distribution
     std::vector<unsigned> cohNums(4);
     cohNums[0] = 41; cohNums[1] = 92; cohNums[2] = 99; cohNums[3] = 107;
     std::string distrib = "Normal";
-    double param1 = 3e+8; 	//4.37785e+8;		//Theoretically stress_max = v0*sqrt(E*rho)
+    double param1 = 3e+8; 	//4.37785e+8 Pa;		//Theoretically stress_max = v0*sqrt(E*rho)
     double param2 = 0;
     double param3 = 0;
 
     MatPropGen properties(distrib, param1, param2, param3, nx);
-    properties.assign(cohPar[0], cohNums);
-    cohPar[1].assign( 1, 100 );
-    ring.setCohLaw( "LINSG", cohPar );
+    properties.assign(cohPar[0], cohNums); //assign randomly generated values to cohesive strength: cohPar[0]
+    cohPar[1].assign( 1, 100 );	//Gc (in N/m = Pa*m) value for cohesive zone: cohPar[1]
+    ring.setCohLaw( "LINSG", cohPar );	//set cohesive zone parameters
     ring.plotCohLaw( cohNums );
     
 
-    ring.display( 10, 10 );//vtk files
+    ring.display( 100, 100 );//print vtk files every x timesteps
 
     unsigned nodes[] = { 0, 1 };
     std::vector<unsigned> node2plot ( nodes, nodes+2 );
@@ -77,24 +82,26 @@ std::string path = "/tmp/results";
     ring.plotEnergies();
     ring.plotFrags();
     ring.plotSTheta();
-    ring.defectLimit(0.000);
+    ring.defectLimit(0.000);		//minimum distance between opening locations
 
 
 
-    double totalTime = 5.0e-06;
-    unsigned printFreq = 1;
-    double refine = 0.2;
-	bool allowPlateauEnd = true;
-	bool checkEnergy = false;
+    double totalTime = 5.0e-06;		//end time of simulation
+    unsigned printFreq = 1;			//print table/graph data every x timesteps
+    double refine = 0.2;				//refine the timestep by a factor of x per level of refinement (x or x^2)
+	bool allowPlateauEnd = true; 	//allow the program to exit early when cohesive/fracture energy plateaus
+	bool checkEnergy = true;			//report on energy balance, end when too much energy generated
 	ring.solve( totalTime, printFreq, refine, allowPlateauEnd, checkEnergy );
     ring.printHisto();
 
+	//grab results for parallel combining
 	double runTime = 0.0; unsigned numFrag = 32768; unsigned nIter = 0; double Wcoh0; double Wsum; double Wmax; double WsprD;
 	std::vector<double> fragLength; double meanFragLength; std::vector<unsigned> fHisto;
 	std::vector<std::vector<double> >fragInvCDF;
 	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
 
 	if (/*runTime > 0.0 && numFrag < 32767 && */nIter>0) {	//should eliminate _myid >0
+	if (nIter>0) {	//should eliminate _myid >0
 		//std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
 
 		if (argc > 1) {
