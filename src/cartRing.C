@@ -2284,7 +2284,16 @@ void CartRing::plotCohLaw (const std::vector<unsigned>& cohNums){
 		fprintf( pFileW, "set terminal svg size 1200, 800\n\n" );
 
 		for (unsigned i = 0; i < _cLaw.size(); i++) {
-			fprintf( pFileW, "s1(x) = %12.3e * ( 1.0 - x/%12.3e);\n", _SigC[ _cLaw[i] ], _DelC[ _cLaw[i] ] );
+			if (_lawTyp.compare( 0 , 3, "LIN" ) == 0 ) { 
+            		fprintf( pFileW, "s1(x) = %12.3e * ( 1.0 - x/%12.3e);\n", _SigC[ _cLaw[i] ], _DelC[ _cLaw[i] ] );
+			}
+			else if (_lawTyp.compare( 0 , 4, "SQRT" ) == 0 ) {
+            		fprintf( pFileW, "s1(x) = %12.3e * ( 1.0 - sqrt(x/%12.3e));\n", _SigC[ _cLaw[i] ], _DelC[ _cLaw[i] ] );
+			}
+			else {
+				cout << "cohesive law " << _lawTyp << " not yet implemented!" << endl;
+			}
+
 		    fprintf( pFileW, "s(x) = ( x < %12.3e ? s1(x) : 0.0 );\n\n",  _DelC[ _cLaw[i] ] );
 		    fprintf( pFileW, "e(x) = x * %12.3e / %12.3e;\n\n",  _E, _Dx );
 		    fprintf( pFileW, "set output \"./pngFiles/CohLaw%u.svg\"\n", i + 1);
