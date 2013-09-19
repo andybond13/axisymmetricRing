@@ -643,9 +643,9 @@ void CartRing::defectLimit (const double& defectRange) {
 
 void CartRing::domainDecomposition() {
 
-	_local = vector<int>(2*_Nx);				//list of locally-owned nodes (boolean: 1 = local, 0 = not)
-	_owner = vector<int>(2*_Nx);				//list of owner of nodes
-	vector<int> owner = vector<int>(2*_Nx); //list of owner of nodes - local, used to build global one
+	_local = vector<unsigned>(2*_Nx);				//list of locally-owned nodes (boolean: 1 = local, 0 = not)
+	_owner = vector<unsigned>(2*_Nx);				//list of owner of nodes
+	vector<unsigned> owner = vector<unsigned>(2*_Nx); //list of owner of nodes - local, used to build global one
 	_begin = (_myid*_Nx)/_numprocs;			//first node that this processor owns
 	_end = ((_myid+1)*_Nx)/_numprocs-1; 		//last node that this processor owns
 
@@ -860,7 +860,7 @@ void CartRing::NewmarkReso () {
 
 	//if defectRange exists, must update sequentially to be consistent with serial case (assume this is necessary)
 	if (_defectRange > 0) {		//if there is a zone around each fracture site that prevents other nodes from opening, non-zero
-		for (int j = 0; j < _numprocs; ++j) {
+		for (unsigned j = 0; j < _numprocs; ++j) {
 			int size;
 			int begin;
 			if (j == _myid) {
@@ -1079,8 +1079,6 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
 	//If open...
         // Compute crack opening distance
         std::vector<double> crack = cohVecPred( cohNum );
-	//_delta[cohNum] = 0;
-        _delta[cohNum] = sqrt( pow( crack[0], 2 ) + pow( crack[1], 2 ) );
 
 	//Determine unit vector to midpoint of the cohesive link
 	double xAvg = 0.5 * (cosThetaPred( _CohCon[cohNum].first ) + cosThetaPred( _CohCon[cohNum].second ));
@@ -1088,6 +1086,8 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
 
 	//Assign delta as the cross-product of the crack location vector 
 		//and the crack opening (cohesive link) vector; delta in theta-dir only
+	//_delta[cohNum] = 0;
+       // _delta[cohNum] = sqrt( pow( crack[0], 2 ) + pow( crack[1], 2 ) );
 	_delta[cohNum] = crack[1] * xAvg - crack[0] * yAvg;	
 
 	//Assign damage as ratio of delta to maximum separation
@@ -1965,7 +1965,7 @@ void CartRing::exchangeFragInfo() {
     MPI::COMM_WORLD.Allgather(&locNumFrag, 1, MPI::INT, &numfrags[0], 1, MPI::INT);
 
     _numFrag = 0;
-    for (int i=0; i<_numprocs; i++) 
+    for (unsigned i=0; i<_numprocs; i++) 
         _numFrag += numfrags[i];
 
     vector<int> outVector (_numFrag);
@@ -1973,7 +1973,7 @@ void CartRing::exchangeFragInfo() {
 
     if (_myid == 0) {
         double sum = 0;
-        for (int i = 0; i < _numprocs; ++i) {
+        for (unsigned i = 0; i < _numprocs; ++i) {
             displ[i] = sum;
             sum += numfrags[i];
         }

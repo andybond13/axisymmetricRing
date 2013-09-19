@@ -391,16 +391,16 @@ private:
 		   _defectRange: crack opening limit range, +/- from opening on either side
 		
     */
-	int _myid;
-	int _numprocs;
+	unsigned _myid;
+	unsigned _numprocs;
     double _L;
     double _A;
     double _rho;
     double _E;
     double _R0;
     unsigned _Nx;
-	std::vector<int> _local;
-	std::vector<int> _owner;
+	std::vector<unsigned> _local;
+	std::vector<unsigned> _owner;
 	unsigned _begin;
 	unsigned _end;
     double _c;
@@ -415,8 +415,8 @@ private:
 
 	//boundary node and owner/neighbor list
 	std::vector<unsigned> _nodeList;
-	std::vector<int> _originList;
-	std::vector<int> _destList;
+	std::vector<unsigned> _originList;
+	std::vector<unsigned> _destList;
 //	std::vector<int> _dirList;	//1 for owner 1->owner 2. 2 for owner2->owner1.
 
     //! Attributes describing the mesh
