@@ -412,6 +412,7 @@ private:
 	std::clock_t _start;
 	bool _allowPlateauEnd;
 	bool _checkEnergy;
+	std::string _lawTyp;
 
 	//boundary node and owner/neighbor list
 	std::vector<unsigned> _nodeList;

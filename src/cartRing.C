@@ -184,6 +184,10 @@ CartRing::~CartRing () {
 
 void CartRing::setCohLaw ( const std::string& lawTyp,
                            const std::vector<std::vector<double> >& param ) {
+
+	//save cohesive law type
+	_lawTyp = lawTyp;
+
 	//assume downward linear / Ortiz form
     //If sigma (maximum traction) and delta (final opening) are specified
     if ( lawTyp.compare( 0 , 5, "LINSD" ) == 0 ) {
@@ -268,6 +272,56 @@ void CartRing::setCohLaw ( const std::string& lawTyp,
                        << std::endl; 
 			assert(1==0);
         }
+	} else if ( lawTyp.compare( 0, 6, "SQRTSG" ) == 0 ) {		//if sigma and energy are specified - square root curve - Nicholas Moes TLS-based
+        if ( param.size() >= 2 ) {
+            // _SigC
+            if ( param[0].size() == 1 ) {
+                _SigC.assign( _Nx, param[0][0] );
+            } else if ( param[0].size() == _Nx ) {
+                _SigC.assign( param[0].begin(), param[0].end() );
+            } else {
+                std::cout << "param[0].size() and # of cohesive links"
+                          << " mismatch!!\n"
+                          << "only the first value " << param[0][0]
+                          << " is considered for all the elements"
+                          << std::endl;
+                _SigC.assign( _Nx, param[0][0] );
+            }
+            // _DelC
+            if ( param[1].size() == _Nx ) {
+                _DelC.resize( _Nx );
+                if ( param[0].size() != _Nx ) {
+                    for ( unsigned i = 0; i < _Nx; i++ ) {
+                        _DelC[i] = 3 * param[1][i] / param[0][0];	//Gc = sigma*delta/3; delta=3*Gc/sigmac
+                    }
+                } else {
+                    for ( unsigned i = 0; i < _Nx; i++ ) {
+                        _DelC[i] = 3 * param[1][i] / param[0][i];
+                    }
+                }
+            } else {
+                if ( param[0].size() != _Nx ) {
+                    _DelC.assign( _Nx, 3 * param[1][0] / param[0][0] );
+                } else {
+                    _DelC.resize( _Nx );
+                    for ( unsigned i = 0; i < _Nx; i++ ) {
+                        _DelC[i] = 3 * param[1][0] / param[0][i];
+                    }
+                }
+                if ( param[1].size() != 1 ) {
+                    std::cout << "param[1].size() and # of cohesive links"
+                              << " mismatch!!\n"
+                              << "only the first value " << param[1][0]
+                              << " is considered for all the elements"
+                              << std::endl;
+                }
+            }
+        } else {
+             std::cout << "SQRTSG requires two parameters sigma_c and delta_c"
+                       << std::endl; 
+			assert(1==0);
+        }
+
     } else {
         std::cout << lawTyp << " has not yet been implemented!!" << std::endl;
 		assert(1==0);
@@ -1282,6 +1336,7 @@ double CartRing::stress ( const unsigned sprNum ) {
 
 void CartRing::cohStr ( const unsigned cohNum ) {
 	//this method contains the formula for the downward-sloping, linear cohesive zone law / traction-separation law
+	//this method contains the formula for the square-root curve cohesive zone law / traction-separation law - Nicholas Moes TLS-based
 
     //Reset cohesive stress to zero
     _sigCoh[cohNum] = 0;
@@ -1290,26 +1345,33 @@ void CartRing::cohStr ( const unsigned cohNum ) {
         if ( (_delta[cohNum] > _DelC[cohNum]) || (_D[cohNum][0] >= 1.0 ) ) {
             // Fully broken link
             _sigCoh[cohNum] = 0.0;
-        } else if ( _delta[cohNum] > _D[cohNum][0] * _DelC[cohNum]) {
-            // Damaging link
-            /* 
-               Only linear case implemented.
-               Here their should be a function call to more sophisticated
-               cohesive laws.
-            */
-            _sigCoh[cohNum] = _SigC[cohNum] * ( 1.0 - _delta[cohNum] / _DelC[cohNum] );
-
         } else {
-            // Elastic unloading/reloading, no further damage
-            _sigCoh[cohNum] = ( 1.0 - _D[cohNum][0] ) / _D[cohNum][0] * _SigC[cohNum]
-                   * ( _delta[cohNum] / _DelC[cohNum] ); 
+            // Partially damaged link
+
+			if (_lawTyp.compare( 0 , 3, "LIN" ) == 0 ) { 
+            		_sigCoh[cohNum] = _SigC[cohNum] * ( 1.0 - _D[cohNum][1] );
+			}
+			else if (_lawTyp.compare( 0 , 4, "SQRT" ) == 0 ) {
+            		_sigCoh[cohNum] = _SigC[cohNum] * ( 1.0 - sqrt(_D[cohNum][1]) );
+			}
+			else {
+				cout << "cohesive law " << _lawTyp << " not yet implemented!" << endl;
+				assert(1==0);
+			}
+
+			if ( _delta[cohNum] < _D[cohNum][1] * _DelC[cohNum]) {
+	            // Elastic unloading/reloading, no further damage
+				_sigCoh[cohNum] *= _delta[cohNum] /( _D[cohNum][1] * _DelC[cohNum]);
+			}
+
         }
     } else {
         // Compressive behavior ( Penalty )
         double pen = 1.0e+0;
-	_sigCoh[cohNum] = _delta[cohNum] * _E / _Dx * pen;	//Follow scaled elastic modulus line*pen
+		_sigCoh[cohNum] = _delta[cohNum] * _E / _Dx * pen;	//Follow scaled elastic modulus line*pen
     }
 
+	return;
 }
 
 void CartRing::energBalance () {
