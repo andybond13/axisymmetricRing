@@ -1166,8 +1166,17 @@ std::vector<double> CartRing::cohForc ( const unsigned cohNum ) {
         _Fcoh[nod_2][1] = -1.0 * _A * _sigCoh[cohNum] * sinPhi;
 
         // Compute cohesive energy
-        wCoh[0] = 0.5 * _A * _SigC[cohNum] * _D[cohNum][1] * _DelC[cohNum];
         wCoh[1] = 0.5 * _A * _sigCoh[cohNum] * _delta[cohNum];
+		if (_lawTyp.compare( 0 , 3, "LIN" ) == 0 ) { 
+       		wCoh[0] = 0.5 * _A * _SigC[cohNum] * _D[cohNum][1] * _DelC[cohNum];
+		}
+		else if (_lawTyp.compare( 0 , 4, "SQRT" ) == 0 ) {
+	        wCoh[0] = _A * _SigC[cohNum] * _D[cohNum][1] * _DelC[cohNum] * (0.5 - 1.0/6.0 * sqrt(_D[cohNum][1]));
+		}
+		else {
+			cout << "cohesive law " << _lawTyp << " not yet implemented!" << endl;
+		}
+
     }
     return wCoh;
 }
