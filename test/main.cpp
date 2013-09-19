@@ -100,7 +100,6 @@ std::string path = "/tmp/results";
 	std::vector<std::vector<double> >fragInvCDF;
 	ring.grabInfo( runTime, numFrag, nIter, Wcoh0, Wsum, Wmax, fragLength, meanFragLength, WsprD, fHisto, fragInvCDF);
 
-	if (/*runTime > 0.0 && numFrag < 32767 && */nIter>0) {	//should eliminate _myid >0
 	if (nIter>0) {	//should eliminate _myid >0
 		//std::cout << "runtime: " << runTime << "   numFrag: " << numFrag << " nIter: " << nIter << std::endl;
 

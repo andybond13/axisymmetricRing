@@ -217,6 +217,7 @@ void CartRing::setCohLaw ( const std::string& lawTyp,
         } else {
              std::cout << "LINSD requires two parameters sigma_c and delta_c"
                        << std::endl; 
+	     	assert(1==0);
         }
     } else if ( lawTyp.compare( 0, 5, "LINSG" ) == 0 ) {		//if sigma and energy are specified
         if ( param.size() >= 2 ) {
@@ -265,9 +266,11 @@ void CartRing::setCohLaw ( const std::string& lawTyp,
         } else {
              std::cout << "LINSG requires two parameters sigma_c and delta_c"
                        << std::endl; 
+			assert(1==0);
         }
     } else {
         std::cout << lawTyp << " has not yet been implemented!!" << std::endl;
+		assert(1==0);
     }
 
     // resize _ActivCoh, _D, _delta, _and _sigCoh
@@ -292,6 +295,7 @@ void CartRing::applyForc ( const std::string& loadTyp,
     } else {
         std::cout << "Load type " << loadTyp << " not yet implemented!"
                   << std::endl;
+		assert(1==0);
     }
 
     if ( loadDir.compare( 0, 5, "RADIA") == 0 ) {	//a radial force - Assign type and value to NFBC & VFBC[0]
@@ -302,6 +306,7 @@ void CartRing::applyForc ( const std::string& loadTyp,
         _ValForcBC[1] = loadVal;
     } else {
         std::cout << "Direction " << loadDir << " unknown !" << std::endl; 
+		assert(1==0);
     }
 }
 
@@ -317,6 +322,7 @@ void CartRing::applyVel (  const std::string& velDir, const double velVal  ) {
         _ValVelBC[1] = velVal;
     } else {
         std::cout << "Direction " << velDir << " unknown! " << std::endl; 
+		assert(1==0);
     }
 }
 
@@ -337,6 +343,7 @@ void CartRing::initVel ( const std::string& velDir, const double velVal ) {
         }
     } else {
         std::cout << "Direction " << velDir << " unknown! " << std::endl; 
+		assert(1==0);
     }
      //count initial velocity as an initial external work/given energy
     _Wext += 0.5 * (_m * 2 * _Nx) * pow( velVal , 2) * (double)(_end-_begin+1)/(double)_Nx;
