@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <ctime> 
 
 #ifndef __CARTRING_H__
 #define __CARTRING_H__
