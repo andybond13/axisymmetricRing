@@ -1,5 +1,5 @@
 CPP       = mpic++
-CPP_FLAGS = -O3 -Wall -fPIC -m64 -g
+CPP_FLAGS = -O3 -Wall -fPIC -g
 SOFTWARE  = ./utilities
 BOOST_ROOT = $(SOFTWARE)/boost/
 LIBS = -lboost_system -lboost_filesystem
@@ -23,6 +23,17 @@ endif
 ifeq ($(UNAME), OSX)
 	# do something OSX-y
 endif
+
+#check 32 or 64 bit
+LBITS := $(shell getconf LONG_BIT)
+ifeq ($(LBITS),64)
+   # do 64 bit stuff here
+   CPP_FLAGS += -m64
+else
+   # do 32 bit stuff here
+   CPP_FLAGS += -m32
+endif
+
 
 #all    : main.exe service client.exe
 #service: $(OBJSERV)connectCR.o $(OBJSERV)connectMPG.o $(OBJSERV)libCartRing.so $(OBJSERV)libMatPropGen.so $(OBJSERV)CartRing.exe $(OBJSERV)MatPropGen.exe
